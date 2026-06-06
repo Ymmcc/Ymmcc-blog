@@ -79,11 +79,6 @@ const config: Config = {
         },
         {
           to: '/blog',
-          label: '代码片段',
-          position: 'left',
-        },
-        {
-          to: '/blog',
           label: '学习日志',
           position: 'left',
         },
@@ -117,10 +112,6 @@ const config: Config = {
         {
           title: '内容',
           items: [
-            {
-              label: '代码片段',
-              to: '/blog',
-            },
             {
               label: '项目作品',
               to: '/docs/projects/intro',
