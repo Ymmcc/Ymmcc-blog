@@ -33,7 +33,6 @@ const config: Config = {
       {
         docs: {
           sidebarPath: './sidebars.ts',
-          editUrl: 'https://github.com/yymmcc/Ymmcc-blog/edit/main/',
         },
         blog: {
           showReadingTime: true,
@@ -45,7 +44,6 @@ const config: Config = {
             type: ['rss', 'atom'],
             xslt: true,
           },
-          editUrl: 'https://github.com/yymmcc/Ymmcc-blog/edit/main/',
           onInlineTags: 'warn',
           onInlineAuthors: 'warn',
           onUntruncatedBlogPosts: 'ignore',
