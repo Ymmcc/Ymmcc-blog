@@ -1,5 +1,6 @@
 ---
 sidebar_position: 1
+custom_edit_url: null
 ---
 
 # 算法与数据结构
@@ -8,7 +9,4 @@ sidebar_position: 1
 
 ## 内容目录
 
-- 二叉树遍历
-- 排序算法
-- 搜索算法
-- 动态规划
+- 二叉树遍历算法

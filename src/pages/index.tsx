@@ -57,7 +57,6 @@ const stats = [
   { label: '学习笔记', value: '12+', icon: '📝' },
   { label: '代码片段', value: '20+', icon: '💻' },
   { label: '项目作品', value: '5+', icon: '🚀' },
-  { label: '学习天数', value: '100+', icon: '📅' },
 ];
 
 function HeroSection() {
@@ -67,67 +66,123 @@ function HeroSection() {
   const buttonsRef = useRef<HTMLDivElement>(null);
   const statsRef = useRef<HTMLDivElement>(null);
   const scrollIndicatorRef = useRef<HTMLDivElement>(null);
-  const decorCircleRef = useRef<HTMLDivElement>(null);
-  const decorSquareRef = useRef<HTMLDivElement>(null);
-  const decorTriangleRef = useRef<HTMLDivElement>(null);
-  const particlesRef = useRef<HTMLDivElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const glowRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const floatingOrbsRef = useRef<HTMLDivElement>(null);
 
-  // 鼠标视差效果 - 使用 useCallback 优化性能
-  const handleMouseMove = useCallback((e: MouseEvent) => {
-    const {clientX, clientY} = e;
-    const {innerWidth, innerHeight} = window;
-    const x = (clientX - innerWidth / 2) / innerWidth;
-    const y = (clientY - innerHeight / 2) / innerHeight;
+  // 高级粒子背景系统
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
 
-    // 装饰图形视差
-    if (decorCircleRef.current) {
-      gsap.to(decorCircleRef.current, {
-        x: x * 40,
-        y: y * 40,
-        rotation: x * 10,
-        duration: 1.2,
-        ease: 'power2.out',
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    let animationId: number;
+    let particles: Array<{
+      x: number; y: number; vx: number; vy: number;
+      size: number; opacity: number; hue: number;
+    }> = [];
+    let mouseX = 0, mouseY = 0;
+
+    const resize = () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    };
+    resize();
+    window.addEventListener('resize', resize);
+
+    const handleMouse = (e: MouseEvent) => {
+      mouseX = e.clientX;
+      mouseY = e.clientY;
+    };
+    window.addEventListener('mousemove', handleMouse);
+
+    // 创建粒子
+    for (let i = 0; i < 60; i++) {
+      particles.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        vx: (Math.random() - 0.5) * 0.3,
+        vy: (Math.random() - 0.5) * 0.3,
+        size: Math.random() * 2 + 0.5,
+        opacity: Math.random() * 0.4 + 0.1,
+        hue: Math.random() * 60 + 240
       });
     }
 
-    if (decorSquareRef.current) {
-      gsap.to(decorSquareRef.current, {
-        x: x * -30,
-        y: y * -30,
-        rotation: y * -15,
-        duration: 1.4,
-        ease: 'power2.out',
-      });
-    }
+    const animate = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    if (decorTriangleRef.current) {
-      gsap.to(decorTriangleRef.current, {
-        x: x * 25,
-        y: y * 25,
-        duration: 1.6,
-        ease: 'power2.out',
-      });
-    }
-
-    // 粒子视差
-    if (particlesRef.current) {
-      const particles = particlesRef.current.children;
-      for (let i = 0; i < particles.length; i++) {
-        const speed = (i % 3 + 1) * 0.5;
-        gsap.to(particles[i], {
-          x: x * 20 * speed,
-          y: y * 20 * speed,
-          duration: 1 + (i % 3) * 0.3,
-          ease: 'power1.out',
+      // 绘制优雅连接线
+      particles.forEach((p, i) => {
+        particles.slice(i + 1).forEach(p2 => {
+          const dx = p.x - p2.x;
+          const dy = p.y - p2.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < 120) {
+            const gradient = ctx.createLinearGradient(p.x, p.y, p2.x, p2.y);
+            gradient.addColorStop(0, `hsla(260, 80%, 70%, ${0.2 * (1 - dist / 120)})`);
+            gradient.addColorStop(1, `hsla(280, 80%, 70%, ${0.1 * (1 - dist / 120)})`);
+            ctx.beginPath();
+            ctx.strokeStyle = gradient;
+            ctx.lineWidth = 0.8;
+            ctx.moveTo(p.x, p.y);
+            ctx.lineTo(p2.x, p2.y);
+            ctx.stroke();
+          }
         });
-      }
-    }
+      });
+
+      // 更新粒子 - 带鼠标吸引效果
+      particles.forEach(p => {
+        const dx = mouseX - p.x;
+        const dy = mouseY - p.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+
+        if (dist < 200) {
+          p.vx += dx * 0.00005;
+          p.vy += dy * 0.00005;
+        }
+
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vx *= 0.99;
+        p.vy *= 0.99;
+
+        if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
+        if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
+
+        // 绘制带光晕的粒子
+        const gradient = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.size * 3);
+        gradient.addColorStop(0, `hsla(${p.hue}, 80%, 70%, ${p.opacity})`);
+        gradient.addColorStop(1, `hsla(${p.hue}, 80%, 70%, 0)`);
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size * 3, 0, Math.PI * 2);
+        ctx.fillStyle = gradient;
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fillStyle = `hsla(${p.hue}, 80%, 80%, ${p.opacity * 1.5})`;
+        ctx.fill();
+      });
+
+      animationId = requestAnimationFrame(animate);
+    };
+    animate();
+
+    return () => {
+      cancelAnimationFrame(animationId);
+      window.removeEventListener('resize', resize);
+      window.removeEventListener('mousemove', handleMouse);
+    };
   }, []);
 
   useEffect(() => {
     if (!heroRef.current) return;
 
-    // 设置初始状态 - 使用 autoAlpha 替代 opacity
+    // 设置初始状态
     gsap.set([subtitleRef.current, buttonsRef.current, statsRef.current, scrollIndicatorRef.current], {
       autoAlpha: 0,
       y: 30,
@@ -151,160 +206,143 @@ function HeroSection() {
       });
     }
 
+    // 光晕呼吸动画
+    glowRefs.current.forEach((glow, i) => {
+      if (glow) {
+        gsap.to(glow, {
+          scale: 1.2 + i * 0.1,
+          opacity: 0.6 + i * 0.1,
+          duration: 3 + i,
+          ease: 'sine.inOut',
+          repeat: -1,
+          yoyo: true,
+          delay: i * 0.5,
+        });
+
+        // 缓慢漂移
+        gsap.to(glow, {
+          x: `random(-50, 50)`,
+          y: `random(-50, 50)`,
+          duration: 8 + i * 2,
+          ease: 'sine.inOut',
+          repeat: -1,
+          yoyo: true,
+        });
+      }
+    });
+
+    // 浮动球体动画
+    if (floatingOrbsRef.current) {
+      const orbs = floatingOrbsRef.current.children;
+      Array.from(orbs).forEach((orb, i) => {
+        gsap.to(orb, {
+          y: `random(-30, 30)`,
+          x: `random(-20, 20)`,
+          rotation: `random(-180, 180)`,
+          duration: 6 + i * 2,
+          ease: 'sine.inOut',
+          repeat: -1,
+          yoyo: true,
+        });
+      });
+    }
+
     // 创建主时间线
     const tl = gsap.timeline({
       defaults: {ease: 'power3.out'},
-      delay: 0.3,
+      delay: 0.5,
     });
 
-    // 背景光晕入场
-    tl.from([decorCircleRef.current, decorSquareRef.current], {
-      scale: 0,
-      opacity: 0,
-      duration: 1.5,
-      ease: 'elastic.out(1, 0.5)',
-      stagger: 0.2,
-    });
-
-    // 标题字符入场 - 使用 stagger 的 from 语法
+    // 标题字符入场
     tl.to(`.${styles.heroChar}`, {
       autoAlpha: 1,
       y: 0,
       rotateX: 0,
       scale: 1,
       stagger: {
-        each: 0.04,
+        each: 0.05,
         from: 'center',
         ease: 'power2.inOut',
       },
-      duration: 0.8,
+      duration: 1,
       ease: 'back.out(2)',
-    }, '-=0.8');
-
-    // 标题光晕效果
-    tl.from(`.${styles.heroTitleGradient}`, {
-      backgroundPosition: '200% center',
-      duration: 1.5,
-      ease: 'power2.inOut',
-    }, '-=0.5');
+    });
 
     // 副标题入场
     tl.to(subtitleRef.current, {
       autoAlpha: 1,
       y: 0,
-      duration: 0.7,
-      ease: 'power3.out',
-    }, '-=0.4');
+      duration: 0.8,
+    }, '-=0.5');
 
-    // 按钮入场 - 使用 stagger
+    // 按钮入场
     tl.to(buttonsRef.current, {
       autoAlpha: 1,
       y: 0,
-      duration: 0.6,
-    }, '-=0.3');
+      duration: 0.7,
+    }, '-=0.4');
 
     if (buttonsRef.current) {
-      const buttons = buttonsRef.current.children;
-      tl.from(buttons, {
+      tl.from(buttonsRef.current.children, {
         scale: 0.8,
         stagger: 0.15,
-        duration: 0.5,
+        duration: 0.6,
         ease: 'back.out(1.7)',
-      }, '-=0.4');
+      }, '-=0.5');
     }
 
     // 统计数据入场
     tl.to(statsRef.current, {
       autoAlpha: 1,
       y: 0,
-      duration: 0.5,
-    }, '-=0.2');
+      duration: 0.6,
+    }, '-=0.3');
 
     if (statsRef.current) {
-      const statItems = statsRef.current.children;
-      tl.from(statItems, {
+      tl.from(statsRef.current.children, {
         y: 20,
         autoAlpha: 0,
-        stagger: {
-          each: 0.1,
-          from: 'random',
-        },
+        stagger: { each: 0.1, from: 'random' },
         duration: 0.5,
-        ease: 'power2.out',
-      }, '-=0.3');
+      }, '-=0.4');
     }
 
-    // 滚动指示器入场
+    // 滚动指示器
     tl.to(scrollIndicatorRef.current, {
       autoAlpha: 1,
       y: 0,
       duration: 0.5,
     }, '-=0.2');
 
-    // 滚动指示器持续动画
     tl.fromTo(scrollIndicatorRef.current,
       { y: 0 },
-      {
-        y: 10,
-        duration: 1.5,
-        ease: 'sine.inOut',
-        repeat: -1,
-        yoyo: true
-      },
+      { y: 10, duration: 1.5, ease: 'sine.inOut', repeat: -1, yoyo: true },
       '+=0.5'
     );
 
-    // 粒子入场动画
-    if (particlesRef.current) {
-      const particles = particlesRef.current.children;
-      gsap.from(particles, {
-        scale: 0,
-        autoAlpha: 0,
-        stagger: {
-          each: 0.05,
-          from: 'random',
-        },
-        duration: 1,
-        ease: 'power2.out',
-        delay: 0.5,
-      });
-    }
-
-    // 添加鼠标事件监听
-    window.addEventListener('mousemove', handleMouseMove);
-
-    return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      tl.kill();
-    };
-  }, [handleMouseMove]);
+    return () => { tl.kill(); };
+  }, []);
 
   return (
     <header ref={heroRef} className={styles.heroBanner}>
-      {/* 背景装饰 */}
-      <div className={styles.heroBgCircle1} />
-      <div className={styles.heroBgCircle2} />
-      <div ref={decorCircleRef} className={clsx(styles.heroDecor, styles.heroDecorCircle)} />
-      <div ref={decorSquareRef} className={clsx(styles.heroDecor, styles.heroDecorSquare)} />
-      <div ref={decorTriangleRef} className={clsx(styles.heroDecor, styles.heroDecorTriangle)} />
+      {/* 高级粒子画布 */}
+      <canvas ref={canvasRef} className={styles.heroCanvas} />
 
-      {/* 粒子效果容器 */}
-      <div ref={particlesRef} className={styles.particles}>
-        {Array.from({length: 40}).map((_, i) => (
-          <div
-            key={i}
-            className={styles.particle}
-            style={{
-              '--x': `${Math.random() * 100}%`,
-              '--y': `${Math.random() * 100}%`,
-              '--duration': `${12 + Math.random() * 18}s`,
-              '--delay': `${Math.random() * 3}s`,
-              '--size': `${2 + Math.random() * 5}px`,
-              '--opacity': `${0.2 + Math.random() * 0.4}`,
-            } as React.CSSProperties}
-          />
-        ))}
+      {/* 动态光晕 */}
+      <div ref={el => { glowRefs.current[0] = el; }} className={styles.heroGlow1} />
+      <div ref={el => { glowRefs.current[1] = el; }} className={styles.heroGlow2} />
+      <div ref={el => { glowRefs.current[2] = el; }} className={styles.heroGlow3} />
+
+      {/* 浮动几何球体 */}
+      <div ref={floatingOrbsRef} className={styles.floatingOrbs}>
+        <div className={styles.orb1} />
+        <div className={styles.orb2} />
+        <div className={styles.orb3} />
+        <div className={styles.orb4} />
       </div>
+
+      {/* 网格背景 */}
+      <div className={styles.heroGrid} />
 
       <div className={styles.heroContent}>
         <Heading ref={titleRef} as="h1" className={styles.heroTitle}>
@@ -314,14 +352,14 @@ function HeroSection() {
           记录学习历程，分享技术知识，探索无限可能
         </p>
         <div ref={buttonsRef} className={styles.heroButtons}>
-          <Link className={styles.heroBtn} to="/docs/intro">
+          <Link className={clsx(styles.heroBtn, styles.heroBtnPrimary)} to="/explore">
             <span>开始探索</span>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M5 12h14M12 5l7 7-7 7"/>
             </svg>
           </Link>
-          <Link className={clsx(styles.heroBtn, styles.heroBtnSecondary)} to="/blog">
-            <span>查看日志</span>
+          <Link className={clsx(styles.heroBtn, styles.heroBtnSecondary)} to="/explore">
+            <span>浏览目录</span>
           </Link>
         </div>
 
@@ -435,7 +473,7 @@ function RecentNotesSection() {
           ))}
         </div>
         <div className={styles.viewAll}>
-          <Link to="/docs/intro" className={styles.viewAllBtn}>
+          <Link to="/docs/frontend/intro" className={styles.viewAllBtn}>
             <span>查看全部笔记</span>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M5 12h14M12 5l7 7-7 7"/>

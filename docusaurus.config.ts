@@ -72,14 +72,19 @@ const config: Config = {
       },
       items: [
         {
+          to: '/explore',
+          label: '探索',
+          position: 'left',
+        },
+        {
           type: 'docSidebar',
           sidebarId: 'tutorialSidebar',
           position: 'left',
           label: '学习笔记',
         },
         {
-          to: '/blog',
-          label: '学习日志',
+          to: '/publish',
+          label: '发布文章',
           position: 'left',
         },
         {

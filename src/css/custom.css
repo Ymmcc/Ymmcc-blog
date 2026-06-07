@@ -47,7 +47,7 @@
   /* 渐变 */
   --gradient-primary: linear-gradient(135deg, hsl(250, 85%, 60%), hsl(280, 80%, 55%));
   --gradient-accent: linear-gradient(135deg, hsl(190, 90%, 55%), hsl(220, 85%, 60%));
-  --gradient-hero: linear-gradient(160deg, #0f0c29 0%, #1a1a3e 30%, #24243e 60%, #0f0c29 100%);
+  --gradient-hero: linear-gradient(160deg, #f8faff 0%, #e8edff 30%, #f0f4ff 60%, #f8faff 100%);
   --gradient-card: linear-gradient(180deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0) 100%);
 
   /* 圆角 */
@@ -120,7 +120,7 @@
   --shadow-glow: 0 0 60px rgba(99, 102, 241, 0.2);
   --shadow-glow-accent: 0 0 60px rgba(14, 165, 233, 0.2);
 
-  --gradient-hero: linear-gradient(160deg, #050510 0%, #0a0a1a 30%, #0f0f24 60%, #050510 100%);
+  --gradient-hero: linear-gradient(160deg, #0f0c29 0%, #1a1a3e 30%, #24243e 60%, #0f0c29 100%);
   --gradient-card: linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0) 100%);
 
   --docusaurus-highlighted-code-line-bg: rgba(99, 102, 241, 0.15);
@@ -195,6 +195,25 @@ h1, h2, h3, h4, h5, h6 {
 
 .navbar__link:hover::after {
   width: 100%;
+}
+
+/* 当前页面导航高亮 */
+.navbar__link--active {
+  color: var(--ifm-color-primary) !important;
+  font-weight: 600;
+}
+
+.navbar__link--active::after {
+  width: 100%;
+  background: var(--gradient-primary);
+}
+
+/* 移动端菜单高亮 */
+.menu__link--active:not(.menu__link--sublist) {
+  color: var(--ifm-color-primary);
+  font-weight: 600;
+  background: var(--ifm-color-primary-lightest);
+  border-radius: var(--radius-sm);
 }
 
 /* ==================== Hero 区域 ==================== */
@@ -326,19 +345,29 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .heroTitleGradient {
-  background: linear-gradient(135deg, #fff 0%, #c7d2fe 50%, #a5b4fc 100%);
+  background: linear-gradient(135deg, #4338ca 0%, #6366f1 50%, #818cf8 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  filter: drop-shadow(0 2px 10px rgba(99, 102, 241, 0.3));
+}
+
+[data-theme='dark'] .heroTitleGradient {
+  background: linear-gradient(135deg, #fff 0%, #c7d2fe 50%, #fff 100%);
+  filter: drop-shadow(0 0 30px rgba(165, 180, 252, 0.5));
 }
 
 .heroSubtitle {
   font-family: var(--font-body);
   font-size: clamp(1.1rem, 2.5vw, 1.4rem);
-  color: rgba(255, 255, 255, 0.7);
+  color: #6b7280;
   margin-bottom: var(--space-2xl);
   font-weight: 400;
   line-height: 1.6;
+}
+
+[data-theme='dark'] .heroSubtitle {
+  color: rgba(255, 255, 255, 0.7);
 }
 
 .heroButtons {
@@ -362,6 +391,7 @@ h1, h2, h3, h4, h5, h6 {
   transition: all var(--transition-spring);
   position: relative;
   overflow: hidden;
+  cursor: pointer;
 }
 
 .heroBtnPrimary {
@@ -378,17 +408,28 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .heroBtnSecondary {
-  background: rgba(255, 255, 255, 0.1);
-  color: white;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: white;
+  color: #4338ca;
+  border: 2px solid #c7d2fe;
   backdrop-filter: blur(10px);
 }
 
 .heroBtnSecondary:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: #eef2ff;
   transform: translateY(-3px);
-  color: white;
+  color: #4338ca;
   text-decoration: none;
+}
+
+[data-theme='dark'] .heroBtnSecondary {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+[data-theme='dark'] .heroBtnSecondary:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
 }
 
 /* 按钮光效 */
@@ -417,7 +458,7 @@ h1, h2, h3, h4, h5, h6 {
   flex-direction: column;
   align-items: center;
   gap: var(--space-sm);
-  color: rgba(255, 255, 255, 0.5);
+  color: #9ca3af;
   font-size: 0.85rem;
   animation: bounce 2s ease-in-out infinite;
 }
@@ -425,7 +466,7 @@ h1, h2, h3, h4, h5, h6 {
 .scrollMouse {
   width: 24px;
   height: 38px;
-  border: 2px solid rgba(255, 255, 255, 0.4);
+  border: 2px solid #9ca3af;
   border-radius: 12px;
   position: relative;
 }
@@ -437,10 +478,22 @@ h1, h2, h3, h4, h5, h6 {
   left: 50%;
   width: 4px;
   height: 8px;
-  background: rgba(255, 255, 255, 0.6);
+  background: #9ca3af;
   border-radius: 2px;
   transform: translateX(-50%);
   animation: scrollDown 2s ease-in-out infinite;
+}
+
+[data-theme='dark'] .scrollIndicator {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+[data-theme='dark'] .scrollMouse {
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+[data-theme='dark'] .scrollMouse::after {
+  background: rgba(255, 255, 255, 0.6);
 }
 
 @keyframes bounce {
@@ -851,8 +904,61 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .footer__copyright {
-  color: rgba(255, 255, 255, 0.4);
+  color: #374151;
   font-size: 0.9rem;
+}
+
+[data-theme='dark'] .footer__copyright {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+/* ==================== 文档页面深色模式修复 ==================== */
+[data-theme='dark'] .main-wrapper,
+[data-theme='dark'] .docMainContainer,
+[data-theme='dark'] .docItemCol,
+[data-theme='dark'] .theme-doc-markdown {
+  background: var(--bg-primary) !important;
+}
+
+[data-theme='dark'] .markdown {
+  background: var(--bg-primary);
+}
+
+[data-theme='dark'] article {
+  background: var(--bg-primary);
+}
+
+[data-theme='dark'] .container {
+  background: transparent;
+}
+
+[data-theme='dark'] .row {
+  background: transparent;
+}
+
+[data-theme='dark'] .col {
+  background: transparent;
+}
+
+/* 确保侧边栏也使用正确的背景色 */
+[data-theme='dark'] .theme-doc-sidebar-container {
+  background: var(--bg-secondary) !important;
+}
+
+[data-theme='dark'] .sidebar {
+  background: var(--bg-secondary) !important;
+}
+
+[data-theme='dark'] .menu__link {
+  background: transparent;
+}
+
+[data-theme='dark'] .menu__link:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+[data-theme='dark'] .menu__link--active {
+  background: rgba(99, 102, 241, 0.15);
 }
 
 /* ==================== GSAP 动画类 ==================== */

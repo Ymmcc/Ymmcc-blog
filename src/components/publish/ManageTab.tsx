@@ -1,0 +1,207 @@
+import React, { useState, useRef, useEffect } from 'react';
+import gsap from 'gsap';
+import styles from '../../pages/publish.module.css';
+import { GitHubFile, ArticleMeta } from './types';
+import { fetchFileList, fetchFileContent, parseFrontmatter, deleteFile } from './github-api';
+
+interface Props {
+  token: string;
+  onTokenChange: (token: string) => void;
+  onEditArticle: (content: string, sha: string, path: string) => void;
+}
+
+interface ArticleItem extends GitHubFile {
+  meta: ArticleMeta;
+}
+
+export default function ManageTab({ token, onTokenChange, onEditArticle }: Props) {
+  const [articles, setArticles] = useState<ArticleItem[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [search, setSearch] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('all');
+  const [sortBy, setSortBy] = useState<'newest' | 'oldest'>('newest');
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [statusMsg, setStatusMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+    gsap.set(containerRef.current, { y: 30, opacity: 0 });
+    gsap.to(containerRef.current, { y: 0, opacity: 1, duration: 0.6, ease: 'power3.out' });
+  }, []);
+
+  // 加载文章列表
+  const loadArticles = async () => {
+    if (!token) {
+      setStatusMsg({ type: 'error', text: '请先输入 GitHub Token' });
+      return;
+    }
+
+    setLoading(true);
+    setStatusMsg(null);
+
+    try {
+      const files = await fetchFileList(token);
+      const articleItems: ArticleItem[] = [];
+
+      for (const file of files) {
+        try {
+          const { content } = await fetchFileContent(token, file.path);
+          const meta = parseFrontmatter(content);
+          articleItems.push({ ...file, meta });
+        } catch {
+          // 跳过无法读取的文件
+        }
+      }
+
+      setArticles(articleItems);
+    } catch (err) {
+      setStatusMsg({ type: 'error', text: err instanceof Error ? err.message : '加载失败' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 筛选和排序
+  const filteredArticles = articles
+    .filter(a => {
+      const matchSearch = a.meta.title.toLowerCase().includes(search.toLowerCase());
+      const matchCategory = categoryFilter === 'all' || a.path.includes(`/${categoryFilter}/`);
+      return matchSearch && matchCategory;
+    })
+    .sort((a, b) => {
+      const dateA = new Date(a.meta.date || 0).getTime();
+      const dateB = new Date(b.meta.date || 0).getTime();
+      return sortBy === 'newest' ? dateB - dateA : dateA - dateB;
+    });
+
+  // 编辑文章
+  const handleEdit = async (article: ArticleItem) => {
+    if (!token) {
+      setStatusMsg({ type: 'error', text: '请先输入 GitHub Token' });
+      return;
+    }
+
+    try {
+      const { content, sha } = await fetchFileContent(token, article.path);
+      // 去掉 frontmatter，只保留正文
+      const body = content.replace(/^---\n[\s\S]*?\n---\n?/, '');
+      onEditArticle(body, sha, article.path);
+    } catch (err) {
+      setStatusMsg({ type: 'error', text: '加载文章内容失败' });
+    }
+  };
+
+  // 删除文章
+  const handleDelete = async (article: ArticleItem) => {
+    if (!token) return;
+
+    try {
+      await deleteFile(token, article.path, article.sha);
+      setArticles(prev => prev.filter(a => a.path !== article.path));
+      setConfirmDelete(null);
+      setStatusMsg({ type: 'success', text: `已删除: ${article.meta.title}` });
+      setTimeout(() => setStatusMsg(null), 3000);
+    } catch (err) {
+      setStatusMsg({ type: 'error', text: err instanceof Error ? err.message : '删除失败' });
+    }
+  };
+
+  // 查看文章
+  const handleView = (article: ArticleItem) => {
+    const slug = article.path.replace(/^docs\//, '').replace(/\.md$/, '');
+    window.open(`/docs/${slug}`, '_blank');
+  };
+
+  const categoryLabels: Record<string, string> = {
+    frontend: '前端开发',
+    backend: '后端开发',
+    algorithm: '算法学习',
+    projects: '项目作品'
+  };
+
+  return (
+    <div ref={containerRef} className={styles.manageTab}>
+      {/* Token 输入 */}
+      <div className={styles.tokenBar}>
+        <input
+          type="password"
+          value={token}
+          onChange={e => onTokenChange(e.target.value)}
+          placeholder="输入 GitHub Token 以管理文章"
+          className={styles.formInput}
+        />
+        <button onClick={loadArticles} disabled={loading || !token} className={styles.loadBtn}>
+          {loading ? '加载中...' : '加载文章'}
+        </button>
+      </div>
+
+      {/* 状态消息 */}
+      {statusMsg && (
+        <div className={`${styles.statusMessage} ${styles[statusMsg.type]}`}>
+          <span>{statusMsg.type === 'success' ? '✅' : '❌'}</span>
+          <span>{statusMsg.text}</span>
+        </div>
+      )}
+
+      {/* 搜索和筛选 */}
+      <div className={styles.filterBar}>
+        <input
+          type="text"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="搜索文章..."
+          className={styles.searchInput}
+        />
+        <select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)} className={styles.filterSelect}>
+          <option value="all">全部分类</option>
+          <option value="frontend">前端开发</option>
+          <option value="backend">后端开发</option>
+          <option value="algorithm">算法学习</option>
+          <option value="projects">项目作品</option>
+        </select>
+        <select value={sortBy} onChange={e => setSortBy(e.target.value as 'newest' | 'oldest')} className={styles.filterSelect}>
+          <option value="newest">最新发布</option>
+          <option value="oldest">最早发布</option>
+        </select>
+      </div>
+
+      {/* 文章列表 */}
+      {articles.length === 0 && !loading ? (
+        <div className={styles.emptyState}>
+          <div style={{ fontSize: '64px', marginBottom: '16px' }}>📚</div>
+          <p>{token ? '点击「加载文章」获取已发布文章列表' : '请输入 GitHub Token 以管理文章'}</p>
+        </div>
+      ) : (
+        <div className={styles.articleList}>
+          {filteredArticles.map((article) => (
+            <div key={article.path} className={styles.articleCard}>
+              <div className={styles.articleInfo}>
+                <h4 className={styles.articleTitle}>{article.meta.title || article.name}</h4>
+                <div className={styles.articleMeta}>
+                  <span className={styles.articleCategory}>
+                    {categoryLabels[article.path.split('/')[1]] || article.path.split('/')[1]}
+                  </span>
+                  {article.meta.date && <span className={styles.articleDate}>{article.meta.date}</span>}
+                </div>
+                <span className={styles.articlePath}>{article.path}</span>
+              </div>
+              <div className={styles.articleActions}>
+                <button onClick={() => handleEdit(article)} className={styles.editBtn}>编辑</button>
+                {confirmDelete === article.path ? (
+                  <div className={styles.confirmActions}>
+                    <button onClick={() => handleDelete(article)} className={styles.confirmDeleteBtn}>确认删除</button>
+                    <button onClick={() => setConfirmDelete(null)} className={styles.cancelBtn}>取消</button>
+                  </div>
+                ) : (
+                  <button onClick={() => setConfirmDelete(article.path)} className={styles.deleteBtn}>删除</button>
+                )}
+                <button onClick={() => handleView(article)} className={styles.viewBtn}>查看</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}

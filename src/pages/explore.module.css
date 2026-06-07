@@ -1,0 +1,141 @@
+/* 探索页面样式 */
+.explorePage {
+  min-height: 100vh;
+  background: linear-gradient(180deg, #f0f4ff 0%, #ffffff 50%, #f8faff 100%);
+  padding: 100px 24px 60px;
+}
+
+[data-theme='dark'] .explorePage {
+  background: linear-gradient(180deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 48px;
+}
+
+.header h1 {
+  font-size: clamp(2rem, 5vw, 3rem);
+  font-weight: 700;
+  color: #1a1a2e;
+  margin-bottom: 12px;
+}
+
+[data-theme='dark'] .header h1 {
+  color: #ffffff;
+}
+
+.header p {
+  font-size: 1.1rem;
+  color: #6b7280;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+[data-theme='dark'] .header p {
+  color: #a0aec0;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 24px;
+}
+
+.categoryCard {
+  background: white;
+  border-radius: 16px;
+  padding: 28px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  border: 1px solid #eef2ff;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  cursor: pointer;
+}
+
+[data-theme='dark'] .categoryCard {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.categoryCard:hover {
+  transform: translateY(-8px) scale(1.02);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+}
+
+[data-theme='dark'] .categoryCard:hover {
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.cardIcon {
+  font-size: 48px;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.1));
+}
+
+.cardTitle {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #1a1a2e;
+}
+
+[data-theme='dark'] .cardTitle {
+  color: #ffffff;
+}
+
+.cardDescription {
+  margin: 4px 0 0;
+  font-size: 0.95rem;
+  color: #6b7280;
+}
+
+[data-theme='dark'] .cardDescription {
+  color: #a0aec0;
+}
+
+.divider {
+  border-top: 1px solid #e5e7eb;
+  padding-top: 16px;
+  margin-top: 8px;
+}
+
+[data-theme='dark'] .divider {
+  border-top-color: rgba(255, 255, 255, 0.1);
+}
+
+.itemLink {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  text-decoration: none;
+  color: #374151;
+  font-size: 0.95rem;
+  transition: all 0.2s;
+  margin-bottom: 4px;
+}
+
+[data-theme='dark'] .itemLink {
+  color: #e2e8f0;
+}
+
+.itemLink:hover {
+  padding-left: 16px;
+}
+
+.itemDot {
+  font-size: 8px;
+}
