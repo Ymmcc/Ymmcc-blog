@@ -7,9 +7,10 @@ interface Props {
   onClose: () => void;
   isPublishing: boolean;
   initialToken?: string;
+  publishError?: string | null;
 }
 
-export default function PublishModal({ onConfirm, onClose, isPublishing, initialToken }: Props) {
+export default function PublishModal({ onConfirm, onClose, isPublishing, initialToken, publishError }: Props) {
   const [token, setToken] = useState(initialToken || '');
   const overlayRef = useRef<HTMLDivElement>(null);
   const modalRef = useRef<HTMLDivElement>(null);
@@ -64,6 +65,11 @@ export default function PublishModal({ onConfirm, onClose, isPublishing, initial
             <p className={styles.tokenNote}>
               <span>🔒</span> Token 仅在本次会话中使用，页面关闭后不会保留
             </p>
+            {publishError && (
+              <p style={{ color: '#e74c3c', marginTop: '8px', fontSize: '14px' }}>
+                ❌ {publishError}
+              </p>
+            )}
           </div>
         </div>
         <div className={styles.modalFooter}>

@@ -25,6 +25,7 @@ export default function WriteTab({
   const [showPreview, setShowPreview] = useState(false);
   const [showPublish, setShowPublish] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
+  const [publishError, setPublishError] = useState<string | null>(null);
   const [statusMsg, setStatusMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [savedDraftId, setSavedDraftId] = useState<string | undefined>(
     editMode?.type === 'draft' ? editMode.id : undefined
@@ -100,21 +101,22 @@ export default function WriteTab({
     setTimeout(() => setStatusMsg(null), 2000);
   };
 
-  // 图片上传处理（需要 Token）
+  // 图片上传处理：有 Token 直接上传，没有 Token 先用 base64 占位，发布时再上传
   const handleImageUpload = useCallback(async (file: File): Promise<string | null> => {
-    if (!githubToken) {
-      // 没有 Token 时提示输入
-      setStatusMsg({ type: 'error', text: '请先在发布弹窗中输入 GitHub Token，或在文章管理 Tab 中设置' });
-      setShowPublish(true);
-      return null;
-    }
-
     try {
       const reader = new FileReader();
       return new Promise((resolve, reject) => {
         reader.onload = async (e) => {
           const base64 = e.target?.result as string;
-          const ext = file.name.split('.').pop() || 'png';
+
+          // 没有 Token 时，先用 base64 占位，发布时会自动上传替换
+          if (!githubToken) {
+            setStatusMsg({ type: 'success', text: '图片已插入，发布时会自动上传到 GitHub' });
+            setTimeout(() => setStatusMsg(null), 2000);
+            resolve(base64);
+            return;
+          }
+
           const filename = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
           try {
             const url = await uploadImage(githubToken, filename, base64);
@@ -134,25 +136,58 @@ export default function WriteTab({
     }
   }, [githubToken]);
 
+  // 上传内容中的 base64 图片到 GitHub，替换为线上 URL
+  const uploadInlineImages = async (html: string, token: string): Promise<string> => {
+    const base64Regex = /<img[^>]+src="(data:image\/[^"]+)"[^>]*>/g;
+    const matches = [...html.matchAll(base64Regex)];
+
+    if (matches.length === 0) return html;
+
+    setStatusMsg({ type: 'success', text: `正在上传 ${matches.length} 张图片...` });
+
+    let result = html;
+    for (let i = 0; i < matches.length; i++) {
+      const [fullMatch, base64Data] = matches[i];
+      setStatusMsg({ type: 'success', text: `正在上传图片 ${i + 1}/${matches.length}...` });
+
+      try {
+        const ext = base64Data.match(/data:image\/([^;]+)/)?.[1] || 'png';
+        const filename = `${Date.now()}-${i}.${ext}`;
+        const url = await uploadImage(token, filename, base64Data);
+        result = result.replace(fullMatch, fullMatch.replace(base64Data, url));
+      } catch (err) {
+        throw new Error(`图片上传失败: ${err instanceof Error ? err.message : '未知错误'}`);
+      }
+    }
+
+    return result;
+  };
+
   // 发布
   const handlePublish = async (token: string) => {
     if (!articleData.title) {
-      setStatusMsg({ type: 'error', text: '请输入文章标题' });
+      setPublishError('请输入文章标题');
       return;
     }
 
     // 保存 Token 供图片上传使用
     setGithubToken(token);
     setIsPublishing(true);
+    setPublishError(null);
     setStatusMsg(null);
 
     try {
-      const content = generateMarkdown(articleData);
+      // 先上传内容中的 base64 图片
+      const processedHtml = await uploadInlineImages(articleData.markdownContent, token);
+      const processedData = { ...articleData, markdownContent: processedHtml };
+
+      const content = generateMarkdown(processedData);
       const path = editingPath || getFilePath(articleData.category, articleData.title);
       await upsertFile(token, path, content, `feat: ${editingSha ? '更新' : '添加'}文章 "${articleData.title}"`, editingSha);
 
       setStatusMsg({ type: 'success', text: '文章发布成功！GitHub Actions 将自动部署' });
       setShowPublish(false);
+      setPublishError(null);
       setArticleData(defaultArticleData);
       setSavedDraftId(undefined);
       setEditingSha(undefined);
@@ -160,7 +195,9 @@ export default function WriteTab({
       onClearEditMode();
       onPublishSuccess();
     } catch (err) {
-      setStatusMsg({ type: 'error', text: err instanceof Error ? err.message : '发布失败' });
+      const msg = err instanceof Error ? err.message : '发布失败';
+      setPublishError(msg);
+      setStatusMsg({ type: 'error', text: msg });
     } finally {
       setIsPublishing(false);
     }
@@ -272,9 +309,10 @@ export default function WriteTab({
       {showPublish && (
         <PublishModal
           onConfirm={handlePublish}
-          onClose={() => setShowPublish(false)}
+          onClose={() => { setShowPublish(false); setPublishError(null); }}
           isPublishing={isPublishing}
           initialToken={githubToken}
+          publishError={publishError}
         />
       )}
     </div>

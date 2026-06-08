@@ -1,7 +1,7 @@
 import { GitHubFile, ArticleMeta } from './types';
 import TurndownService from 'turndown';
 
-const REPO_OWNER = 'yymmcc';
+const REPO_OWNER = 'Ymmcc';
 const REPO_NAME = 'Ymmcc-blog';
 const API_BASE = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents`;
 
@@ -47,7 +47,11 @@ export async function fetchFileList(token: string, path = 'docs'): Promise<GitHu
   });
 
   if (!response.ok) {
-    throw new Error('获取文件列表失败');
+    if (response.status === 401) throw new Error('Token 无效或已过期，请检查后重新输入');
+    if (response.status === 403) throw new Error('Token 权限不足，需要 repo 权限');
+    if (response.status === 404) throw new Error(`仓库或路径不存在: ${REPO_OWNER}/${REPO_NAME}/${path}`);
+    const err = await response.json().catch(() => null);
+    throw new Error(err?.message || `获取文件列表失败 (${response.status})`);
   }
 
   const items = await response.json() as GitHubFile[];
@@ -76,7 +80,10 @@ export async function fetchFileContent(token: string, path: string): Promise<{ c
   });
 
   if (!response.ok) {
-    throw new Error('获取文件内容失败');
+    if (response.status === 401) throw new Error('Token 无效或已过期');
+    if (response.status === 404) throw new Error(`文件不存在: ${path}`);
+    const err = await response.json().catch(() => null);
+    throw new Error(err?.message || `获取文件内容失败 (${response.status})`);
   }
 
   const data = await response.json();
@@ -135,12 +142,28 @@ export async function deleteFile(token: string, path: string, sha: string): Prom
   }
 }
 
-// 上传图片到 GitHub 仓库
+// 上传图片到 GitHub 仓库（base64Data 已经是 base64 编码，直接发送）
 export async function uploadImage(token: string, filename: string, base64Data: string): Promise<string> {
   const path = `static/img/uploads/${filename}`;
   const content = base64Data.includes(',') ? base64Data.split(',')[1] : base64Data;
 
-  await upsertFile(token, path, content, `feat: 上传图片 ${filename}`);
+  const response = await fetch(`${API_BASE}/${path}`, {
+    method: 'PUT',
+    headers: {
+      'Authorization': `token ${token}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      message: `feat: 上传图片 ${filename}`,
+      content: content  // 已经是 base64，直接发送
+    })
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || '图片上传失败');
+  }
+
   return `/img/uploads/${filename}`;
 }
 
