@@ -15,6 +15,8 @@ function SidebarTOCScript() {
         this.setupPageLoad();
         // 监听路由变化
         this.setupRouteChange();
+        // 监听分类折叠事件
+        this.setupCategoryCollapse();
       }
 
       setupPageLoad() {
@@ -27,7 +29,50 @@ function SidebarTOCScript() {
         document.addEventListener('click', (e) => {
           const link = e.target.closest('a');
           if (link && link.href.includes('/docs/')) {
+            // 移除所有现有的 TOC
+            this.removeAllTOC();
             setTimeout(() => this.moveTOC(), 300);
+          }
+        });
+      }
+
+      removeAllTOC() {
+        // 移除所有现有的 TOC 容器
+        const tocContainers = document.querySelectorAll('.sidebar-toc');
+        tocContainers.forEach(toc => toc.remove());
+
+        // 移除所有箭头
+        const arrows = document.querySelectorAll('.sidebar-toc-arrow');
+        arrows.forEach(arrow => arrow.remove());
+      }
+
+      setupCategoryCollapse() {
+        // 监听分类折叠按钮的点击事件
+        document.addEventListener('click', (e) => {
+          const target = e.target as HTMLElement;
+          // 检查是否点击了分类折叠按钮
+          if (target.closest('.menu__caret') || target.closest('.menu__link--sublist')) {
+            // 延迟检查 TOC 状态
+            setTimeout(() => this.checkTOCVisibility(), 100);
+          }
+        });
+      }
+
+      checkTOCVisibility() {
+        // 检查所有 TOC 容器
+        const tocContainers = document.querySelectorAll('.sidebar-toc');
+        tocContainers.forEach(toc => {
+          const articleLi = toc.closest('li');
+          if (!articleLi) return;
+
+          // 检查父元素是否可见
+          const parentUl = articleLi.closest('ul');
+          if (!parentUl) return;
+
+          // 如果父元素被隐藏，也隐藏 TOC
+          const isParentVisible = window.getComputedStyle(parentUl).display !== 'none';
+          if (!isParentVisible) {
+            toc.style.display = 'none';
           }
         });
       }
@@ -126,13 +171,8 @@ function SidebarTOCScript() {
         tocContainer.style.display = 'block';
         arrow.style.transform = 'rotate(0deg)';
 
-        // 点击标题展开/折叠
-        titleElement.addEventListener('click', (e) => {
-          // 如果点击的是链接本身，不阻止默认行为
-          if (e.target.tagName === 'A' && !e.target.classList.contains('sidebar-toc-link')) {
-            return;
-          }
-
+        // 点击箭头展开/折叠
+        arrow.addEventListener('click', (e) => {
           e.preventDefault();
           e.stopPropagation();
 
