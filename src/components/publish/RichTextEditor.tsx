@@ -74,6 +74,7 @@ export default function RichTextEditor({ content, onChange, onImageUpload }: Pro
       return;
     }
     setIsUploading(true);
+    setShowImageDialog(false); // 关闭弹窗
     try {
       const url = await onImageUpload(file);
       if (url) {
