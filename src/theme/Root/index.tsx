@@ -41,8 +41,12 @@ function SidebarTOCScript() {
         const articleTitle = document.querySelector('.theme-doc-sidebar-menu .menu__link--active');
         if (!articleTitle) return;
 
+        // 获取文章标题所在的 li 元素
+        const articleLi = articleTitle.closest('li');
+        if (!articleLi) return;
+
         // 检查是否已经添加了 TOC
-        const existingTOC = articleTitle.parentElement.querySelector('.sidebar-toc');
+        const existingTOC = articleLi.querySelector('.sidebar-toc');
         if (existingTOC) return;
 
         // 创建 TOC 容器
@@ -73,8 +77,8 @@ function SidebarTOCScript() {
           tocContainer.appendChild(tocItem);
         });
 
-        // 插入到文章标题后面
-        articleTitle.parentElement.appendChild(tocContainer);
+        // 插入到文章标题的 li 元素内
+        articleLi.appendChild(tocContainer);
 
         // 添加展开/折叠交互
         this.setupToggle(articleTitle, tocContainer);

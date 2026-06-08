@@ -992,12 +992,12 @@ h1, h2, h3, h4, h5, h6 {
 
 /* ==================== 左侧导航栏 TOC 样式 ==================== */
 .sidebar-toc {
-  margin-left: 16px;
-  border-left: 2px solid var(--ifm-color-primary-lighter);
-  padding-left: 12px;
   list-style: none;
   padding: 0;
   margin: 0;
+  margin-left: 16px;
+  border-left: 2px solid var(--ifm-color-primary-lighter);
+  padding-left: 12px;
 }
 
 .sidebar-toc-item {
