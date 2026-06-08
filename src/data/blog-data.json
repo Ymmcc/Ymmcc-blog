@@ -1,7 +1,7 @@
 {
   "stats": {
-    "notes": 4,
-    "codeSnippets": 10,
+    "notes": 3,
+    "codeSnippets": 7,
     "projects": 0
   },
   "recentNotes": [
@@ -22,15 +22,6 @@
       "icon": "🐍",
       "date": null,
       "sidebar_position": 2
-    },
-    {
-      "title": "三层模式与二级映射",
-      "description": "--- title: 数据库 date: 2026-06-08 tags: [数据库, MySQL, DBMS] description: 基于MySQL语言的数据库相关知识 --- ## 一、三层模...",
-      "link": "/docs/backend/数据库",
-      "tag": "后端",
-      "icon": "🐍",
-      "date": null,
-      "sidebar_position": 999
     },
     {
       "title": "二叉树遍历算法",
@@ -67,10 +58,6 @@
         {
           "name": "Python 基础语法",
           "link": "/docs/backend/python-basics"
-        },
-        {
-          "name": "三层模式与二级映射",
-          "link": "/docs/backend/数据库"
         }
       ]
     },
@@ -96,5 +83,5 @@
       "items": []
     }
   ],
-  "generatedAt": "2026-06-08T15:35:32.993Z"
+  "generatedAt": "2026-06-08T15:47:05.206Z"
 }

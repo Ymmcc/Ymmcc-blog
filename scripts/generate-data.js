@@ -143,7 +143,7 @@ function generateRecentNotes() {
     return a.sidebar_position - b.sidebar_position;
   });
 
-  return allNotes.slice(0, 6); // 返回最新的 6 篇
+  return allNotes.slice(0, 3); // 返回最新的 3 篇
 }
 
 // 生成项目列表
