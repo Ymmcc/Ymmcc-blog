@@ -1,7 +1,7 @@
 {
   "stats": {
-    "notes": 3,
-    "codeSnippets": 7,
+    "notes": 4,
+    "codeSnippets": 10,
     "projects": 0
   },
   "recentNotes": [
@@ -24,11 +24,11 @@
       "sidebar_position": 2
     },
     {
-      "title": "二叉树遍历算法",
-      "description": "--- sidebar_position: 2 custom_edit_url: null --- 二叉树是计算机科学中最重要的数据结构之一，遍历是其基本操作。 ## 二叉树定义 ## 前序遍历（Pr...",
-      "link": "/docs/algorithm/binary-tree",
-      "tag": "算法",
-      "icon": "🌳",
+      "title": "三层模式与二级映射",
+      "description": "--- title: 三层模式与二级映射 sidebar_position: 2 date: 2026-06-08 tags: [数据库, MySQL, DBMS] description: 数据库系...",
+      "link": "/docs/backend/database/three-level-schema",
+      "tag": "数据库",
+      "icon": "🐍",
       "date": null,
       "sidebar_position": 999
     }
@@ -58,6 +58,10 @@
         {
           "name": "Python 基础语法",
           "link": "/docs/backend/python-basics"
+        },
+        {
+          "name": "三层模式与二级映射",
+          "link": "/docs/backend/database/three-level-schema"
         }
       ]
     },
@@ -83,5 +87,5 @@
       "items": []
     }
   ],
-  "generatedAt": "2026-06-08T16:17:33.220Z"
+  "generatedAt": "2026-06-08T16:31:00.191Z"
 }

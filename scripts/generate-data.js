@@ -71,14 +71,21 @@ function getLink(dirName, fileName) {
   return `/docs/${dirName}/${slug}`;
 }
 
-// 扫描目录
+// 从子目录文件名生成链接
+function getSubDirLink(parentDir, subDir, fileName) {
+  const slug = fileName.replace(/\.md$/, '');
+  return `/docs/${parentDir}/${subDir}/${slug}`;
+}
+
+// 扫描目录（包括子目录）
 function scanDirectory(dirName) {
   const dirPath = path.join(docsDir, dirName);
   if (!fs.existsSync(dirPath)) return [];
 
-  const files = fs.readdirSync(dirPath).filter(f => f.endsWith('.md') && f !== 'intro.md');
   const articles = [];
 
+  // 扫描当前目录的 md 文件
+  const files = fs.readdirSync(dirPath).filter(f => f.endsWith('.md') && f !== 'intro.md');
   for (const file of files) {
     const filePath = path.join(dirPath, file);
     const content = fs.readFileSync(filePath, 'utf-8');
@@ -97,6 +104,46 @@ function scanDirectory(dirName) {
     });
   }
 
+  // 扫描子目录
+  const subDirs = fs.readdirSync(dirPath, { withFileTypes: true })
+    .filter(d => d.isDirectory() && !d.name.startsWith('.'))
+    .map(d => d.name);
+
+  for (const subDir of subDirs) {
+    const subDirPath = path.join(dirPath, subDir);
+    const subFiles = fs.readdirSync(subDirPath).filter(f => f.endsWith('.md') && f !== 'intro.md');
+
+    for (const file of subFiles) {
+      const filePath = path.join(subDirPath, file);
+      const content = fs.readFileSync(filePath, 'utf-8');
+      const frontmatter = parseFrontmatter(content);
+      const title = frontmatter.title || content.match(/^#\s+(.+)/m)?.[1] || file.replace(/\.md$/, '');
+      const description = frontmatter.description || extractDescription(content);
+
+      // 读取子目录的 _category_.json 获取标签名
+      const categoryPath = path.join(subDirPath, '_category_.json');
+      let subDirLabel = subDir;
+      if (fs.existsSync(categoryPath)) {
+        try {
+          const categoryData = JSON.parse(fs.readFileSync(categoryPath, 'utf-8'));
+          subDirLabel = categoryData.label || subDir;
+        } catch (e) {
+          // 忽略解析错误
+        }
+      }
+
+      articles.push({
+        title,
+        description,
+        link: getSubDirLink(dirName, subDir, file),
+        tag: subDirLabel,
+        icon: categoryConfig[dirName]?.icon || '📄',
+        date: frontmatter.date || null,
+        sidebar_position: frontmatter.sidebar_position || 999,
+      });
+    }
+  }
+
   // 按 sidebar_position 排序
   articles.sort((a, b) => a.sidebar_position - b.sidebar_position);
   return articles;
@@ -112,11 +159,27 @@ function generateStats() {
     const dirPath = path.join(docsDir, cat);
     if (!fs.existsSync(dirPath)) continue;
 
+    // 统计当前目录的 md 文件
     const files = fs.readdirSync(dirPath).filter(f => f.endsWith('.md') && f !== 'intro.md');
     if (cat === 'projects') {
       totalProjects += files.length;
     } else {
       totalNotes += files.length;
+    }
+
+    // 统计子目录中的 md 文件
+    const subDirs = fs.readdirSync(dirPath, { withFileTypes: true })
+      .filter(d => d.isDirectory() && !d.name.startsWith('.'))
+      .map(d => d.name);
+
+    for (const subDir of subDirs) {
+      const subDirPath = path.join(dirPath, subDir);
+      const subFiles = fs.readdirSync(subDirPath).filter(f => f.endsWith('.md') && f !== 'intro.md');
+      if (cat === 'projects') {
+        totalProjects += subFiles.length;
+      } else {
+        totalNotes += subFiles.length;
+      }
     }
   }
 
