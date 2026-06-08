@@ -1599,9 +1599,10 @@ select.formInput {
 
 /* ========== Tiptap WYSIWYG 编辑器 ========== */
 .tiptapEditor {
+  position: relative;
   border: 2px solid #e5e7eb;
   border-radius: 12px;
-  overflow: hidden;
+  overflow: visible;
   transition: all 0.3s ease;
 }
 
@@ -1881,6 +1882,21 @@ select.formInput {
   border-radius: 8px;
   margin: 12px 0;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  transition: box-shadow 0.2s;
+}
+
+.tiptapContent img:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+/* 当设置了 width/height 属性时，允许自定义尺寸 */
+.tiptapContent img[width] {
+  width: attr(width);
+}
+
+.tiptapContent img[height] {
+  height: attr(height);
 }
 
 /* Placeholder */
