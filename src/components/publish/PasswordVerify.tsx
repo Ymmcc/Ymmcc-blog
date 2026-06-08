@@ -27,6 +27,9 @@ export default function PasswordVerify({ onVerified }: Props) {
     }> = [];
     let mouseX = 0, mouseY = 0;
 
+    // 获取当前主题
+    const getIsDark = () => document.documentElement.getAttribute('data-theme') === 'dark';
+
     const resize = () => {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
@@ -54,6 +57,11 @@ export default function PasswordVerify({ onVerified }: Props) {
 
     const animate = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const isDark = getIsDark();
+      // 浅色模式用深色粒子，深色模式用亮色粒子
+      const lightness = isDark ? 70 : 40;
+      const lineAlpha = isDark ? 0.2 : 0.12;
+      const dotAlpha = isDark ? 1.5 : 1.0;
 
       particles.forEach((p, i) => {
         particles.slice(i + 1).forEach(p2 => {
@@ -62,8 +70,8 @@ export default function PasswordVerify({ onVerified }: Props) {
           const dist = Math.sqrt(dx * dx + dy * dy);
           if (dist < 120) {
             const gradient = ctx.createLinearGradient(p.x, p.y, p2.x, p2.y);
-            gradient.addColorStop(0, `hsla(260, 80%, 70%, ${0.2 * (1 - dist / 120)})`);
-            gradient.addColorStop(1, `hsla(280, 80%, 70%, ${0.1 * (1 - dist / 120)})`);
+            gradient.addColorStop(0, `hsla(260, 60%, ${lightness}%, ${lineAlpha * (1 - dist / 120)})`);
+            gradient.addColorStop(1, `hsla(280, 60%, ${lightness}%, ${lineAlpha * 0.5 * (1 - dist / 120)})`);
             ctx.beginPath();
             ctx.strokeStyle = gradient;
             ctx.lineWidth = 0.8;
@@ -90,8 +98,8 @@ export default function PasswordVerify({ onVerified }: Props) {
         if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
 
         const gradient = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.size * 3);
-        gradient.addColorStop(0, `hsla(${p.hue}, 80%, 70%, ${p.opacity})`);
-        gradient.addColorStop(1, `hsla(${p.hue}, 80%, 70%, 0)`);
+        gradient.addColorStop(0, `hsla(${p.hue}, 60%, ${lightness}%, ${p.opacity})`);
+        gradient.addColorStop(1, `hsla(${p.hue}, 60%, ${lightness}%, 0)`);
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.size * 3, 0, Math.PI * 2);
         ctx.fillStyle = gradient;
@@ -99,7 +107,7 @@ export default function PasswordVerify({ onVerified }: Props) {
 
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-        ctx.fillStyle = `hsla(${p.hue}, 80%, 80%, ${p.opacity * 1.5})`;
+        ctx.fillStyle = `hsla(${p.hue}, 70%, ${lightness + 10}%, ${p.opacity * dotAlpha})`;
         ctx.fill();
       });
 

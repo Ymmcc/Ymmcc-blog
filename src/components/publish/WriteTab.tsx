@@ -1,14 +1,12 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import MDEditor from '@uiw/react-md-editor';
 import gsap from 'gsap';
 import styles from '../../pages/publish.module.css';
-import { ArticleData, CodeBlock, EditMode, defaultArticleData } from './types';
+import { ArticleData, EditMode, defaultArticleData } from './types';
 import { saveDraft } from './storage';
-import { generateMarkdown, getFilePath, upsertFile } from './github-api';
-import EditorToolbar from './EditorToolbar';
-import ImageUploader, { useImageDropPaste } from './ImageUploader';
-import PreviewModal from './PreviewModal';
+import { generateMarkdown, getFilePath, upsertFile, uploadImage } from './github-api';
+import RichTextEditor from './RichTextEditor';
 import PublishModal from './PublishModal';
+import PreviewModal from './PreviewModal';
 
 interface Props {
   editMode: EditMode | null;
@@ -33,9 +31,9 @@ export default function WriteTab({
   );
   const [editingSha, setEditingSha] = useState(initialSha);
   const [editingPath, setEditingPath] = useState(initialPath);
+  const [githubToken, setGithubToken] = useState('');
 
   const containerRef = useRef<HTMLDivElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // 加载编辑模式数据
@@ -60,6 +58,18 @@ export default function WriteTab({
     gsap.to(containerRef.current, { y: 0, opacity: 1, duration: 0.6, ease: 'power3.out' });
   }, []);
 
+  // Ctrl+S 快捷键保存草稿
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        handleSaveDraft();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [articleData, savedDraftId]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const handleChange = (updates: Partial<ArticleData>) => {
     setArticleData(prev => ({ ...prev, ...updates }));
     setStatusMsg(null);
@@ -76,7 +86,7 @@ export default function WriteTab({
       setTimeout(() => setStatusMsg(null), 2000);
     }, 30000);
     return () => { if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current); };
-  }, [articleData]);
+  }, [articleData, savedDraftId]);
 
   // 手动保存草稿
   const handleSaveDraft = () => {
@@ -90,35 +100,39 @@ export default function WriteTab({
     setTimeout(() => setStatusMsg(null), 2000);
   };
 
-  // 插入文本到编辑器
-  const handleInsert = (text: string) => {
-    handleChange({ markdownContent: articleData.markdownContent + text });
-  };
-
-  // 图片上传
-  const handleImageUpload = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleImageFile = useCallback(async (file: File) => {
-    // 图片上传需要 Token，在发布弹窗中处理
-    setStatusMsg({ type: 'error', text: '请通过发布弹窗输入 Token 后上传图片' });
-  }, []);
-
-  // 拖拽/粘贴处理
-  const { handleDrop, handleDragOver, handlePaste } = useImageDropPaste(handleImageFile);
-
-  // 生成预览内容
-  const getPreviewContent = (): string => {
-    let content = articleData.markdownContent;
-    if (articleData.codeBlocks.length > 0) {
-      content += '\n\n## 代码片段\n\n';
-      articleData.codeBlocks.forEach((block, i) => {
-        content += `### 代码块 ${i + 1}\n\n\`\`\`${block.language}\n${block.code}\n\`\`\`\n\n`;
-      });
+  // 图片上传处理（需要 Token）
+  const handleImageUpload = useCallback(async (file: File): Promise<string | null> => {
+    if (!githubToken) {
+      // 没有 Token 时提示输入
+      setStatusMsg({ type: 'error', text: '请先在发布弹窗中输入 GitHub Token，或在文章管理 Tab 中设置' });
+      setShowPublish(true);
+      return null;
     }
-    return content;
-  };
+
+    try {
+      const reader = new FileReader();
+      return new Promise((resolve, reject) => {
+        reader.onload = async (e) => {
+          const base64 = e.target?.result as string;
+          const ext = file.name.split('.').pop() || 'png';
+          const filename = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+          try {
+            const url = await uploadImage(githubToken, filename, base64);
+            setStatusMsg({ type: 'success', text: '图片上传成功' });
+            setTimeout(() => setStatusMsg(null), 2000);
+            resolve(url);
+          } catch (err) {
+            setStatusMsg({ type: 'error', text: err instanceof Error ? err.message : '图片上传失败' });
+            reject(err);
+          }
+        };
+        reader.onerror = () => reject(new Error('读取文件失败'));
+        reader.readAsDataURL(file);
+      });
+    } catch {
+      return null;
+    }
+  }, [githubToken]);
 
   // 发布
   const handlePublish = async (token: string) => {
@@ -127,11 +141,13 @@ export default function WriteTab({
       return;
     }
 
+    // 保存 Token 供图片上传使用
+    setGithubToken(token);
     setIsPublishing(true);
     setStatusMsg(null);
 
     try {
-      const content = generateMarkdown(articleData, articleData.codeBlocks);
+      const content = generateMarkdown(articleData);
       const path = editingPath || getFilePath(articleData.category, articleData.title);
       await upsertFile(token, path, content, `feat: ${editingSha ? '更新' : '添加'}文章 "${articleData.title}"`, editingSha);
 
@@ -148,27 +164,6 @@ export default function WriteTab({
     } finally {
       setIsPublishing(false);
     }
-  };
-
-  // 代码块管理
-  const addCodeBlock = () => {
-    const newBlock: CodeBlock = {
-      id: Date.now().toString(),
-      language: 'javascript',
-      code: '// 在这里编写代码\n',
-      isCollapsed: false
-    };
-    handleChange({ codeBlocks: [...articleData.codeBlocks, newBlock] });
-  };
-
-  const updateCodeBlock = (id: string, updates: Partial<CodeBlock>) => {
-    handleChange({
-      codeBlocks: articleData.codeBlocks.map(b => b.id === id ? { ...b, ...updates } : b)
-    });
-  };
-
-  const deleteCodeBlock = (id: string) => {
-    handleChange({ codeBlocks: articleData.codeBlocks.filter(b => b.id !== id) });
   };
 
   return (
@@ -243,100 +238,18 @@ export default function WriteTab({
 
       {/* Markdown 编辑器 */}
       <div className={styles.card}>
-        <h3 className={styles.cardTitle}><span>📄</span> Markdown 内容</h3>
-        <EditorToolbar
-          onInsert={handleInsert}
+        <h3 className={styles.cardTitle}><span>📄</span> 内容</h3>
+        <RichTextEditor
+          content={articleData.markdownContent}
+          onChange={value => handleChange({ markdownContent: value })}
           onImageUpload={handleImageUpload}
-          onPreview={() => setShowPreview(true)}
         />
-        <div
-          className={styles.editorWrapper}
-          onDrop={handleDrop}
-          onDragOver={handleDragOver}
-          onPaste={handlePaste}
-        >
-          <MDEditor
-            value={articleData.markdownContent}
-            onChange={value => handleChange({ markdownContent: value || '' })}
-            height={400}
-            preview="edit"
-          />
-        </div>
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          onChange={e => {
-            const file = e.target.files?.[0];
-            if (file) handleImageFile(file);
-          }}
-          style={{ display: 'none' }}
-        />
-      </div>
-
-      {/* 代码块 */}
-      <div className={styles.card}>
-        <div className={styles.cardHeader}>
-          <h3 className={styles.cardTitle} style={{ marginBottom: 0 }}><span>💻</span> 代码片段</h3>
-          <button onClick={addCodeBlock} className={styles.addCodeBtn}>+ 添加代码块</button>
-        </div>
-        {articleData.codeBlocks.length === 0 ? (
-          <div className={styles.emptyCode}>
-            <div style={{ fontSize: '48px', marginBottom: '16px' }}>📝</div>
-            <p style={{ margin: 0 }}>暂无代码块，点击上方按钮添加</p>
-          </div>
-        ) : (
-          <div style={{ display: 'grid', gap: '16px' }}>
-            {articleData.codeBlocks.map((block, index) => (
-              <div key={block.id} className={styles.codeBlock}>
-                <div className={styles.codeBlockHeader}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <select
-                      value={block.language}
-                      onChange={e => updateCodeBlock(block.id, { language: e.target.value })}
-                      className={styles.codeSelect}
-                    >
-                      <option value="javascript">JavaScript</option>
-                      <option value="typescript">TypeScript</option>
-                      <option value="python">Python</option>
-                      <option value="java">Java</option>
-                      <option value="cpp">C++</option>
-                      <option value="go">Go</option>
-                      <option value="rust">Rust</option>
-                      <option value="html">HTML</option>
-                      <option value="css">CSS</option>
-                      <option value="sql">SQL</option>
-                      <option value="bash">Bash</option>
-                    </select>
-                    <span style={{ fontSize: '13px', color: '#666' }}>代码块 {index + 1}</span>
-                  </div>
-                  <div className={styles.codeBlockActions}>
-                    <button onClick={() => updateCodeBlock(block.id, { isCollapsed: !block.isCollapsed })} className={styles.codeBtn}>
-                      {block.isCollapsed ? '展开' : '折叠'}
-                    </button>
-                    <button onClick={() => deleteCodeBlock(block.id)} className={`${styles.codeBtn} ${styles.danger}`}>
-                      删除
-                    </button>
-                  </div>
-                </div>
-                {!block.isCollapsed && (
-                  <MDEditor
-                    value={block.code}
-                    onChange={value => updateCodeBlock(block.id, { code: value || '' })}
-                    height={150}
-                    preview="edit"
-                  />
-                )}
-              </div>
-            ))}
-          </div>
-        )}
       </div>
 
       {/* 操作按钮 */}
       <div className={styles.actionBar}>
         <button onClick={handleSaveDraft} className={styles.saveDraftBtn}>
-          💾 保存草稿
+          💾 保存草稿 <span className={styles.shortcutHint}>Ctrl+S</span>
         </button>
         <button onClick={() => setShowPreview(true)} className={styles.previewBtn}>
           👁 预览
@@ -348,7 +261,11 @@ export default function WriteTab({
 
       {/* 预览弹窗 */}
       {showPreview && (
-        <PreviewModal content={getPreviewContent()} onClose={() => setShowPreview(false)} />
+        <PreviewModal
+          title={articleData.title}
+          content={articleData.markdownContent}
+          onClose={() => setShowPreview(false)}
+        />
       )}
 
       {/* 发布弹窗 */}
@@ -357,6 +274,7 @@ export default function WriteTab({
           onConfirm={handlePublish}
           onClose={() => setShowPublish(false)}
           isPublishing={isPublishing}
+          initialToken={githubToken}
         />
       )}
     </div>

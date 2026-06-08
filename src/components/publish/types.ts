@@ -1,11 +1,3 @@
-// 代码块
-export interface CodeBlock {
-  id: string;
-  language: string;
-  code: string;
-  isCollapsed: boolean;
-}
-
 // 文章数据
 export interface ArticleData {
   title: string;
@@ -13,7 +5,6 @@ export interface ArticleData {
   tags: string;
   description: string;
   markdownContent: string;
-  codeBlocks: CodeBlock[];
 }
 
 // 草稿
@@ -24,7 +15,6 @@ export interface Draft {
   tags: string;
   description: string;
   markdownContent: string;
-  codeBlocks: CodeBlock[];
   updatedAt: number;
 }
 
@@ -66,6 +56,5 @@ export const defaultArticleData: ArticleData = {
   category: 'frontend',
   tags: '',
   description: '',
-  markdownContent: '# 在这里编写文章内容\n\n支持标准 Markdown 语法\n',
-  codeBlocks: []
+  markdownContent: '# 在这里编写文章内容\n\n支持标准 Markdown 语法\n'
 };

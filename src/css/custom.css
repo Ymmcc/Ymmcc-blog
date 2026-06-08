@@ -868,8 +868,8 @@ h1, h2, h3, h4, h5, h6 {
 
 /* ==================== 页脚优化 ==================== */
 .footer {
-  background: var(--gradient-hero) !important;
-  border-top: 1px solid var(--border-light);
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%) !important;
+  border-top: 1px solid rgba(99, 102, 241, 0.2);
   position: relative;
   overflow: hidden;
 }
@@ -879,37 +879,61 @@ h1, h2, h3, h4, h5, h6 {
   position: absolute;
   inset: 0;
   background-image:
-    linear-gradient(rgba(99, 102, 241, 0.05) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(99, 102, 241, 0.05) 1px, transparent 1px);
+    linear-gradient(rgba(99, 102, 241, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(99, 102, 241, 0.08) 1px, transparent 1px);
   background-size: 40px 40px;
-  opacity: 0.5;
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+[data-theme='dark'] .footer {
+  background: linear-gradient(135deg, #0a0a12 0%, #12121e 50%, #1a1a2e 100%) !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .footer__title {
   font-family: var(--font-display);
   font-weight: 600;
   font-size: 1rem;
-  color: rgba(255, 255, 255, 0.9);
+  color: #ffffff;
   margin-bottom: var(--space-md);
+  position: relative;
+  z-index: 1;
 }
 
 .footer__link-item {
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(255, 255, 255, 0.7);
   transition: color var(--transition-fast);
   font-size: 0.95rem;
+  position: relative;
+  z-index: 1;
 }
 
 .footer__link-item:hover {
-  color: var(--color-accent-light);
+  color: #ffffff;
 }
 
 .footer__copyright {
-  color: #374151;
+  color: rgba(255, 255, 255, 0.6);
   font-size: 0.9rem;
+  position: relative;
+  z-index: 1;
+}
+
+[data-theme='dark'] .footer__title {
+  color: #ffffff;
+}
+
+[data-theme='dark'] .footer__link-item {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+[data-theme='dark'] .footer__link-item:hover {
+  color: #ffffff;
 }
 
 [data-theme='dark'] .footer__copyright {
-  color: rgba(255, 255, 255, 0.4);
+  color: rgba(255, 255, 255, 0.5);
 }
 
 /* ==================== 文档页面深色模式修复 ==================== */

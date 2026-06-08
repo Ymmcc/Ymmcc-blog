@@ -6,10 +6,11 @@ interface Props {
   onConfirm: (token: string) => void;
   onClose: () => void;
   isPublishing: boolean;
+  initialToken?: string;
 }
 
-export default function PublishModal({ onConfirm, onClose, isPublishing }: Props) {
-  const [token, setToken] = useState('');
+export default function PublishModal({ onConfirm, onClose, isPublishing, initialToken }: Props) {
+  const [token, setToken] = useState(initialToken || '');
   const overlayRef = useRef<HTMLDivElement>(null);
   const modalRef = useRef<HTMLDivElement>(null);
 
@@ -61,7 +62,7 @@ export default function PublishModal({ onConfirm, onClose, isPublishing }: Props
               className={styles.formInput}
             />
             <p className={styles.tokenNote}>
-              <span>🔒</span> Token 仅用于本次发布，不会被存储
+              <span>🔒</span> Token 仅在本次会话中使用，页面关闭后不会保留
             </p>
           </div>
         </div>

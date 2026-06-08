@@ -1,14 +1,14 @@
 import React, { useRef, useEffect } from 'react';
-import MDEditor from '@uiw/react-md-editor';
 import gsap from 'gsap';
 import styles from '../../pages/publish.module.css';
 
 interface Props {
+  title: string;
   content: string;
   onClose: () => void;
 }
 
-export default function PreviewModal({ content, onClose }: Props) {
+export default function PreviewModal({ title, content, onClose }: Props) {
   const overlayRef = useRef<HTMLDivElement>(null);
   const modalRef = useRef<HTMLDivElement>(null);
 
@@ -18,8 +18,8 @@ export default function PreviewModal({ content, onClose }: Props) {
       gsap.to(overlayRef.current, { opacity: 1, duration: 0.3 });
     }
     if (modalRef.current) {
-      gsap.set(modalRef.current, { scale: 0.9, opacity: 0 });
-      gsap.to(modalRef.current, { scale: 1, opacity: 1, duration: 0.3, ease: 'back.out(1.7)' });
+      gsap.set(modalRef.current, { scale: 0.95, opacity: 0 });
+      gsap.to(modalRef.current, { scale: 1, opacity: 1, duration: 0.3, ease: 'power3.out' });
     }
   }, []);
 
@@ -29,7 +29,7 @@ export default function PreviewModal({ content, onClose }: Props) {
     }
     if (modalRef.current) {
       gsap.to(modalRef.current, {
-        scale: 0.9, opacity: 0, duration: 0.2,
+        scale: 0.95, opacity: 0, duration: 0.2,
         onComplete: onClose
       });
     }
@@ -37,13 +37,17 @@ export default function PreviewModal({ content, onClose }: Props) {
 
   return (
     <div ref={overlayRef} className={styles.modalOverlay} onClick={handleClose}>
-      <div ref={modalRef} className={styles.modalContent} onClick={e => e.stopPropagation()}>
+      <div ref={modalRef} className={styles.previewModal} onClick={e => e.stopPropagation()}>
         <div className={styles.modalHeader}>
           <h3>文章预览</h3>
           <button onClick={handleClose} className={styles.modalCloseBtn}>✕</button>
         </div>
-        <div className={styles.modalBody}>
-          <MDEditor.Markdown source={content} />
+        <div className={styles.previewBody}>
+          <h1 className={styles.previewTitle}>{title || '无标题'}</h1>
+          <div
+            className={styles.previewContent}
+            dangerouslySetInnerHTML={{ __html: content }}
+          />
         </div>
       </div>
     </div>

@@ -1,8 +1,29 @@
 import { GitHubFile, ArticleMeta } from './types';
+import TurndownService from 'turndown';
 
 const REPO_OWNER = 'yymmcc';
 const REPO_NAME = 'Ymmcc-blog';
 const API_BASE = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents`;
+
+// 初始化 Turndown 服务（HTML 转 Markdown）
+const turndownService = new TurndownService({
+  headingStyle: 'atx',
+  codeBlockStyle: 'fenced',
+  bulletListMarker: '-',
+});
+
+// 自定义代码块转换规则（保留语言标识）
+turndownService.addRule('codeBlock', {
+  filter: (node) => {
+    return node.nodeName === 'PRE' && node.firstChild?.nodeName === 'CODE';
+  },
+  replacement: (content, node) => {
+    const codeNode = node.firstChild as HTMLElement;
+    const language = codeNode.className.replace('language-', '') || '';
+    const code = codeNode.textContent || '';
+    return `\n\`\`\`${language}\n${code}\n\`\`\`\n`;
+  },
+});
 
 // 解析 frontmatter
 export function parseFrontmatter(content: string): ArticleMeta {
@@ -114,42 +135,34 @@ export async function deleteFile(token: string, path: string, sha: string): Prom
   }
 }
 
-// 上传图片
+// 上传图片到 GitHub 仓库
 export async function uploadImage(token: string, filename: string, base64Data: string): Promise<string> {
-  const path = `static/img/${filename}`;
+  const path = `static/img/uploads/${filename}`;
   const content = base64Data.includes(',') ? base64Data.split(',')[1] : base64Data;
 
   await upsertFile(token, path, content, `feat: 上传图片 ${filename}`);
-  return `/img/${filename}`;
+  return `/img/uploads/${filename}`;
 }
 
-// 生成 Markdown 内容
+// 生成 Markdown 内容（将 HTML 转换为 Markdown）
 export function generateMarkdown(
-  data: { title: string; tags: string; description: string; markdownContent: string },
-  codeBlocks: Array<{ language: string; code: string }>
+  data: { title: string; tags: string; description: string; markdownContent: string }
 ): string {
   const date = new Date().toISOString().split('T')[0];
   const tagsArray = data.tags.split(',').map(t => t.trim()).filter(Boolean);
 
-  let md = `---
+  // 将富文本 HTML 转换为 Markdown
+  const markdownBody = turndownService.turndown(data.markdownContent);
+
+  const md = `---
 title: ${data.title}
 date: ${date}
 tags: [${tagsArray.join(', ')}]
 description: ${data.description}
 ---
 
-${data.markdownContent}
+${markdownBody}
 `;
-
-  if (codeBlocks.length > 0) {
-    md += '\n## 代码片段\n\n';
-    codeBlocks.forEach((block, index) => {
-      md += `### 代码块 ${index + 1}\n\n`;
-      md += '```' + block.language + '\n';
-      md += block.code;
-      md += '\n```\n\n';
-    });
-  }
 
   return md;
 }

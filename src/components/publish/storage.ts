@@ -62,7 +62,6 @@ export function draftToArticleData(draft: Draft): ArticleData {
     category: draft.category,
     tags: draft.tags,
     description: draft.description,
-    markdownContent: draft.markdownContent,
-    codeBlocks: draft.codeBlocks
+    markdownContent: draft.markdownContent
   };
 }
