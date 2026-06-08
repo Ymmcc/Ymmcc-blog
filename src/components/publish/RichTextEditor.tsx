@@ -1,10 +1,10 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
-import Image from '@tiptap/extension-image';
 import Placeholder from '@tiptap/extension-placeholder';
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
 import { common, createLowlight } from 'lowlight';
+import ResizableImageExtension from './ResizableImageExtension';
 import styles from '../../pages/publish.module.css';
 
 const lowlight = createLowlight(common);
@@ -19,19 +19,14 @@ export default function RichTextEditor({ content, onChange, onImageUpload }: Pro
   const [showImageDialog, setShowImageDialog] = useState(false);
   const [imageUrl, setImageUrl] = useState('');
   const [imageAlt, setImageAlt] = useState('');
-  const [imageWidth, setImageWidth] = useState('');
-  const [imageHeight, setImageHeight] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [showCodeLang, setShowCodeLang] = useState(false);
-  const [resizePopup, setResizePopup] = useState<{ top: number; left: number; node: HTMLElement } | null>(null);
-  const [resizeWidth, setResizeWidth] = useState('');
-  const [resizeHeight, setResizeHeight] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
-        codeBlock: false, // 用低级扩展替代以支持语法高亮
+        codeBlock: false,
       }),
       CodeBlockLowlight.configure({
         lowlight,
@@ -39,7 +34,7 @@ export default function RichTextEditor({ content, onChange, onImageUpload }: Pro
           class: 'editor-code-block',
         },
       }),
-      Image.configure({
+      ResizableImageExtension.configure({
         HTMLAttributes: {
           class: 'editor-image',
         },
@@ -59,59 +54,6 @@ export default function RichTextEditor({ content, onChange, onImageUpload }: Pro
     },
   });
 
-  // 点击图片时显示调整大小弹窗
-  useEffect(() => {
-    if (!editor) return;
-    const editorEl = editor.view.dom;
-
-    const handleClick = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      if (target.tagName === 'IMG') {
-        e.preventDefault();
-        const rect = target.getBoundingClientRect();
-        const container = editorEl.closest(`.${styles.tiptapEditor}`);
-        if (!container) return;
-        const containerRect = container.getBoundingClientRect();
-
-        setResizePopup({
-          top: rect.bottom - containerRect.top + 8,
-          left: rect.left - containerRect.left,
-          node: target,
-        });
-        setResizeWidth(target.getAttribute('width') || '');
-        setResizeHeight(target.getAttribute('height') || '');
-      } else {
-        setResizePopup(null);
-      }
-    };
-
-    editorEl.addEventListener('click', handleClick);
-    return () => editorEl.removeEventListener('click', handleClick);
-  }, [editor]);
-
-  // 应用图片尺寸调整
-  const applyResize = () => {
-    if (!resizePopup || !editor) return;
-    const { node } = resizePopup;
-
-    // 使用 editor 的 node API 更新属性
-    const pos = editor.view.posAtDOM(node, 0);
-    if (pos !== null) {
-      const resolvedPos = editor.state.doc.resolve(pos);
-      const imgNode = resolvedPos.nodeAfter;
-      if (imgNode) {
-        const tr = editor.state.tr.setNodeMarkup(pos, undefined, {
-          ...imgNode.attrs,
-          width: resizeWidth || null,
-          height: resizeHeight || null,
-        });
-        editor.view.dispatch(tr);
-      }
-    }
-
-    setResizePopup(null);
-  };
-
   // 同步外部内容变化
   useEffect(() => {
     if (editor && content !== editor.getHTML()) {
@@ -120,12 +62,9 @@ export default function RichTextEditor({ content, onChange, onImageUpload }: Pro
   }, [content, editor]);
 
   // 插入图片到编辑器
-  const insertImage = useCallback((url: string, alt?: string, width?: string, height?: string) => {
+  const insertImage = useCallback((url: string, alt?: string) => {
     if (!editor) return;
-    const attrs: Record<string, string> = { src: url, alt: alt || '图片' };
-    if (width) attrs.width = width;
-    if (height) attrs.height = height;
-    editor.chain().focus().setImage(attrs).run();
+    editor.chain().focus().setImage({ src: url, alt: alt || '图片' }).run();
   }, [editor]);
 
   // 处理本地文件上传
@@ -139,14 +78,14 @@ export default function RichTextEditor({ content, onChange, onImageUpload }: Pro
       const url = await onImageUpload(file);
       if (url) {
         const alt = file.name.replace(/\.[^.]+$/, '');
-        insertImage(url, alt, imageWidth || undefined, imageHeight || undefined);
+        insertImage(url, alt);
       }
     } catch {
       // 错误由父组件处理
     } finally {
       setIsUploading(false);
     }
-  }, [onImageUpload, insertImage, imageWidth, imageHeight]);
+  }, [onImageUpload, insertImage]);
 
   // 文件选择
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -158,11 +97,9 @@ export default function RichTextEditor({ content, onChange, onImageUpload }: Pro
   // 图片 URL 插入
   const handleInsertImageUrl = () => {
     if (!imageUrl.trim()) return;
-    insertImage(imageUrl.trim(), imageAlt.trim() || '图片', imageWidth || undefined, imageHeight || undefined);
+    insertImage(imageUrl.trim(), imageAlt.trim() || '图片');
     setImageUrl('');
     setImageAlt('');
-    setImageWidth('');
-    setImageHeight('');
     setShowImageDialog(false);
   };
 
@@ -331,7 +268,6 @@ export default function RichTextEditor({ content, onChange, onImageUpload }: Pro
                   key={lang.value}
                   onClick={() => {
                     editor.chain().focus().toggleCodeBlock().run();
-                    // 设置语言需要在 code block 激活后
                     setTimeout(() => {
                       editor.chain().focus().updateAttributes('codeBlock', { language: lang.value }).run();
                     }, 0);
@@ -444,32 +380,6 @@ export default function RichTextEditor({ content, onChange, onImageUpload }: Pro
               />
             </div>
 
-            <div style={{ display: 'flex', gap: '12px' }}>
-              <div className={styles.imageDialogField} style={{ flex: 1 }}>
-                <label>宽度（可选）</label>
-                <input
-                  type="text"
-                  value={imageWidth}
-                  onChange={e => setImageWidth(e.target.value)}
-                  placeholder="如 300px 或 50%"
-                  className={styles.formInput}
-                />
-              </div>
-              <div className={styles.imageDialogField} style={{ flex: 1 }}>
-                <label>高度（可选）</label>
-                <input
-                  type="text"
-                  value={imageHeight}
-                  onChange={e => setImageHeight(e.target.value)}
-                  placeholder="如 200px"
-                  className={styles.formInput}
-                />
-              </div>
-            </div>
-            <p style={{ fontSize: '12px', color: '#888', marginTop: '4px' }}>
-              💡 常用尺寸：小图 200px、中图 400px、大图 600px、全宽 100%
-            </p>
-
             <div className={styles.imageDialogActions}>
               <button onClick={() => setShowImageDialog(false)} className={styles.cancelBtn}>
                 取消
@@ -483,60 +393,6 @@ export default function RichTextEditor({ content, onChange, onImageUpload }: Pro
               </button>
             </div>
           </div>
-        </div>
-      )}
-
-      {/* 图片调整大小弹窗 */}
-      {resizePopup && (
-        <div
-          style={{
-            position: 'absolute',
-            top: resizePopup.top,
-            left: resizePopup.left,
-            background: '#fff',
-            border: '1px solid #ddd',
-            borderRadius: '8px',
-            padding: '12px',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-            zIndex: 100,
-            display: 'flex',
-            gap: '8px',
-            alignItems: 'flex-end',
-          }}
-          onClick={e => e.stopPropagation()}
-        >
-          <div>
-            <label style={{ fontSize: '12px', color: '#666' }}>宽度</label>
-            <input
-              type="text"
-              value={resizeWidth}
-              onChange={e => setResizeWidth(e.target.value)}
-              placeholder="如 300px"
-              style={{ width: '80px', padding: '4px 8px', border: '1px solid #ccc', borderRadius: '4px', fontSize: '13px' }}
-            />
-          </div>
-          <div>
-            <label style={{ fontSize: '12px', color: '#666' }}>高度</label>
-            <input
-              type="text"
-              value={resizeHeight}
-              onChange={e => setResizeHeight(e.target.value)}
-              placeholder="如 200px"
-              style={{ width: '80px', padding: '4px 8px', border: '1px solid #ccc', borderRadius: '4px', fontSize: '13px' }}
-            />
-          </div>
-          <button
-            onClick={applyResize}
-            style={{ padding: '4px 12px', background: '#4a90d9', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '13px' }}
-          >
-            应用
-          </button>
-          <button
-            onClick={() => setResizePopup(null)}
-            style={{ padding: '4px 8px', background: '#eee', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '13px' }}
-          >
-            ✕
-          </button>
         </div>
       )}
     </div>
