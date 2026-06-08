@@ -985,6 +985,11 @@ h1, h2, h3, h4, h5, h6 {
   background: rgba(99, 102, 241, 0.15);
 }
 
+/* ==================== 隐藏右侧目录导航（TOC） ==================== */
+.theme-doc-toc-desktop {
+  display: none !important;
+}
+
 /* ==================== GSAP 动画类 ==================== */
 .gsap-fade-in {
   opacity: 0;

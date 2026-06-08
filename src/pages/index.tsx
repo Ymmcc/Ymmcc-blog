@@ -8,58 +8,15 @@ import Heading from '@theme/Heading';
 import gsap from 'gsap';
 
 import styles from './index.module.css';
-
-// 最新笔记数据
-const recentNotes = [
-  {
-    title: 'React Hooks 入门指南',
-    description: '深入理解 React Hooks 的核心概念，掌握 useState、useEffect 等常用 Hook 的最佳实践',
-    link: '/docs/frontend/react-hooks',
-    tag: '前端',
-    icon: '⚛️',
-  },
-  {
-    title: 'Python 基础语法',
-    description: 'Python 语言核心语法详解，包括数据类型、控制流、函数和面向对象编程',
-    link: '/docs/backend/python-basics',
-    tag: '后端',
-    icon: '🐍',
-  },
-  {
-    title: '二叉树遍历算法',
-    description: '系统学习前序、中序、后序和层序遍历的递归与迭代实现',
-    link: '/docs/algorithm/binary-tree',
-    tag: '算法',
-    icon: '🌳',
-  },
-];
-
-// 项目数据
-const projects = [
-  {
-    title: '个人博客系统',
-    description: '基于 Docusaurus 的现代化学习博客，集成 GSAP 动画和响应式设计',
-    techStack: ['React', 'TypeScript', 'Docusaurus', 'GSAP'],
-    link: '/docs/projects/intro',
-    gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-  },
-  {
-    title: '待办事项应用',
-    description: '全栈待办事项管理工具，支持实时同步和数据可视化',
-    techStack: ['Vue', 'Node.js', 'MongoDB', 'Socket.io'],
-    link: '/docs/projects/intro',
-    gradient: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-  },
-];
-
-// 统计数据
-const stats = [
-  { label: '学习笔记', value: '12+', icon: '📝' },
-  { label: '代码片段', value: '20+', icon: '💻' },
-  { label: '项目作品', value: '5+', icon: '🚀' },
-];
+import blogData from '../data/blog-data.json';
 
 function HeroSection() {
+  const stats = [
+    { label: '学习笔记', value: `${blogData.stats.notes}`, icon: '📝' },
+    { label: '代码片段', value: `${blogData.stats.codeSnippets}`, icon: '💻' },
+    { label: '项目作品', value: `${blogData.stats.projects}`, icon: '🚀' },
+  ];
+
   const heroRef = useRef<HTMLDivElement>(null);
   const titleRef = useRef<HTMLHeadingElement>(null);
   const subtitleRef = useRef<HTMLParagraphElement>(null);
@@ -453,7 +410,7 @@ function RecentNotesSection() {
           最新笔记
         </Heading>
         <div ref={cardsRef} className={styles.notesGrid}>
-          {recentNotes.map((note, index) => (
+          {blogData.recentNotes.map((note, index) => (
             <Link key={index} to={note.link} className={styles.noteCard}>
               <div className={styles.noteCardHeader}>
                 <span className={styles.noteTag}>{note.tag}</span>
@@ -548,25 +505,32 @@ function ProjectsSection() {
           项目作品
         </Heading>
         <div ref={cardsRef} className={styles.projectsGrid}>
-          {projects.map((project, index) => (
-            <Link key={index} to={project.link} className={styles.projectCard}>
-              <div
-                className={styles.projectGradient}
-                style={{background: project.gradient} as React.CSSProperties}
-              />
-              <Heading as="h3" className={styles.projectTitle}>
-                {project.title}
-              </Heading>
-              <p className={styles.projectDescription}>{project.description}</p>
-              <div className={styles.techStack}>
-                {project.techStack.map((tech, i) => (
-                  <span key={i} className={styles.techTag}>
-                    {tech}
-                  </span>
-                ))}
-              </div>
-            </Link>
-          ))}
+          {blogData.projects.length === 0 ? (
+            <div style={{textAlign: 'center', padding: '3rem 1rem', color: '#888', gridColumn: '1 / -1'}}>
+              <p style={{fontSize: '1.2rem', marginBottom: '0.5rem'}}>暂无项目</p>
+              <p>项目作品正在筹备中，敬请期待...</p>
+            </div>
+          ) : (
+            blogData.projects.map((project, index) => (
+              <Link key={index} to={project.link} className={styles.projectCard}>
+                <div
+                  className={styles.projectGradient}
+                  style={{background: project.gradient} as React.CSSProperties}
+                />
+                <Heading as="h3" className={styles.projectTitle}>
+                  {project.title}
+                </Heading>
+                <p className={styles.projectDescription}>{project.description}</p>
+                <div className={styles.techStack}>
+                  {project.techStack.map((tech, i) => (
+                    <span key={i} className={styles.techTag}>
+                      {tech}
+                    </span>
+                  ))}
+                </div>
+              </Link>
+            ))
+          )}
         </div>
         <div className={styles.viewAll}>
           <Link to="/docs/projects/intro" className={styles.viewAllBtn}>

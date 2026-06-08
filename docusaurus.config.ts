@@ -33,6 +33,10 @@ const config: Config = {
       {
         docs: {
           sidebarPath: './sidebars.ts',
+          sidebarCollapsible: true,
+          sidebarCollapsed: false,
+          showLastUpdateTime: true,
+          showLastUpdateAuthor: true,
         },
         blog: {
           showReadingTime: true,

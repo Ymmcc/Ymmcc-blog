@@ -1,0 +1,100 @@
+{
+  "stats": {
+    "notes": 4,
+    "codeSnippets": 10,
+    "projects": 0
+  },
+  "recentNotes": [
+    {
+      "title": "React Hooks 入门指南",
+      "description": "React Hooks 是 React 16.8 引入的新特性，允许在函数组件中使用状态和其他 React 特性。 ## useState `useState` 是最基本的 Hook，用于在函数组件中...",
+      "link": "/docs/frontend/react-hooks",
+      "tag": "前端",
+      "icon": "⚛️",
+      "date": null,
+      "sidebar_position": 2
+    },
+    {
+      "title": "Python 基础语法",
+      "description": "Python 是一种简洁、易读的编程语言，适合初学者学习。 ## 变量和数据类型 ## 控制流 ## 函数 ## 列表推导式 ## 文件操作 ## 异常处理 ## 模块和包",
+      "link": "/docs/backend/python-basics",
+      "tag": "后端",
+      "icon": "🐍",
+      "date": null,
+      "sidebar_position": 2
+    },
+    {
+      "title": "三层模式与二级映射",
+      "description": "--- title: 数据库 date: 2026-06-08 tags: [数据库, MySQL, DBMS] description: 基于MySQL语言的数据库相关知识 --- ## 一、三层模...",
+      "link": "/docs/backend/数据库",
+      "tag": "后端",
+      "icon": "🐍",
+      "date": null,
+      "sidebar_position": 999
+    },
+    {
+      "title": "二叉树遍历算法",
+      "description": "--- sidebar_position: 2 custom_edit_url: null --- 二叉树是计算机科学中最重要的数据结构之一，遍历是其基本操作。 ## 二叉树定义 ## 前序遍历（Pr...",
+      "link": "/docs/algorithm/binary-tree",
+      "tag": "算法",
+      "icon": "🌳",
+      "date": null,
+      "sidebar_position": 999
+    }
+  ],
+  "projects": [],
+  "categories": [
+    {
+      "title": "前端开发",
+      "icon": "⚛️",
+      "description": "React、Vue、TypeScript 等前端技术学习笔记",
+      "color": "#61dafb",
+      "link": "/docs/frontend/intro",
+      "items": [
+        {
+          "name": "React Hooks 入门指南",
+          "link": "/docs/frontend/react-hooks"
+        }
+      ]
+    },
+    {
+      "title": "后端开发",
+      "icon": "🐍",
+      "description": "Python、Node.js、数据库等后端技术",
+      "color": "#3776ab",
+      "link": "/docs/backend/intro",
+      "items": [
+        {
+          "name": "Python 基础语法",
+          "link": "/docs/backend/python-basics"
+        },
+        {
+          "name": "三层模式与二级映射",
+          "link": "/docs/backend/数据库"
+        }
+      ]
+    },
+    {
+      "title": "算法学习",
+      "icon": "🌳",
+      "description": "数据结构与算法，每日一题",
+      "color": "#f39c12",
+      "link": "/docs/algorithm/intro",
+      "items": [
+        {
+          "name": "二叉树遍历算法",
+          "link": "/docs/algorithm/binary-tree"
+        }
+      ]
+    },
+    {
+      "title": "项目作品",
+      "icon": "🚀",
+      "description": "个人项目开发记录与总结",
+      "color": "#e74c3c",
+      "link": "/docs/projects/intro",
+      "items": []
+    }
+  ],
+  "generatedAt": "2026-06-08T15:35:32.993Z"
+}

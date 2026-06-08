@@ -4,53 +4,10 @@ import Link from '@docusaurus/Link';
 import Heading from '@theme/Heading';
 import gsap from 'gsap';
 import styles from './explore.module.css';
+import blogData from '../data/blog-data.json';
 
 // 目录数据
-const categories = [
-  {
-    title: '前端开发',
-    icon: '⚛️',
-    description: 'React、Vue、TypeScript 等前端技术学习笔记',
-    color: '#61dafb',
-    link: '/docs/frontend/intro',
-    items: [
-      { name: '前端开发简介', link: '/docs/frontend/intro' },
-      { name: 'React Hooks 入门指南', link: '/docs/frontend/react-hooks' },
-    ]
-  },
-  {
-    title: '后端开发',
-    icon: '🐍',
-    description: 'Python、Node.js、数据库等后端技术',
-    color: '#3776ab',
-    link: '/docs/backend/intro',
-    items: [
-      { name: '后端开发简介', link: '/docs/backend/intro' },
-      { name: 'Python 基础语法', link: '/docs/backend/python-basics' },
-    ]
-  },
-  {
-    title: '算法学习',
-    icon: '🌳',
-    description: '数据结构与算法，每日一题',
-    color: '#f39c12',
-    link: '/docs/algorithm/intro',
-    items: [
-      { name: '算法学习简介', link: '/docs/algorithm/intro' },
-      { name: '二叉树遍历算法', link: '/docs/algorithm/binary-tree' },
-    ]
-  },
-  {
-    title: '项目作品',
-    icon: '🚀',
-    description: '个人项目开发记录与总结',
-    color: '#e74c3c',
-    link: '/docs/projects/intro',
-    items: [
-      { name: '项目作品简介', link: '/docs/projects/intro' },
-    ]
-  }
-];
+const categories = blogData.categories;
 
 function CategoryCard({ category, index }: { category: typeof categories[0]; index: number }) {
   const cardRef = useRef<HTMLDivElement>(null);
