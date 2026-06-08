@@ -146,12 +146,6 @@ const config: Config = {
       darkTheme: prismThemes.dracula,
       additionalLanguages: ['python', 'java', 'cpp', 'csharp', 'typescript'],
     },
-    scripts: [
-      {
-        src: '/Ymmcc-blog/js/sidebar-toc.js',
-        async: true,
-      },
-    ],
   } satisfies Preset.ThemeConfig,
 };
 
