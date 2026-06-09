@@ -416,43 +416,44 @@ export default function WriteTab({
             <div className={styles.seriesTitleRow}>
               <div className={styles.formGroup} style={{ flex: 1 }}>
                 <label className={styles.formLabel}>系列标题</label>
-                <div className={styles.seriesInputGroup}>
-                  <input
-                    type="text"
-                    value={seriesTitle}
-                    onChange={e => {
-                      setSeriesTitle(e.target.value);
-                      setShowSeriesDropdown(false);
-                    }}
-                    placeholder="例如：数据库"
-                    className={styles.formInput}
-                    onFocus={() => githubToken && (setShowSeriesDropdown(true), availableSeries.length === 0 && loadSeriesList())}
-                  />
-                  {githubToken ? (
-                    <button
-                      type="button"
-                      className={styles.seriesDropdownBtn}
-                      onClick={() => {
-                        if (availableSeries.length === 0) loadSeriesList();
-                        setShowSeriesDropdown(!showSeriesDropdown);
+                <div style={{ position: 'relative' }}>
+                  <div className={styles.seriesInputGroup}>
+                    <input
+                      type="text"
+                      value={seriesTitle}
+                      onChange={e => {
+                        setSeriesTitle(e.target.value);
+                        setShowSeriesDropdown(false);
                       }}
-                      title="选择已有系列"
-                    >
-                      ▼
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      className={`${styles.seriesDropdownBtn} ${styles.seriesNoTokenBtn}`}
-                      onClick={() => setShowSeriesDropdown(!showSeriesDropdown)}
-                      title="需要先设置 GitHub Token"
-                    >
-                      ▼
-                    </button>
-                  )}
-                </div>
-                {/* 系列下拉列表 */}
-                {showSeriesDropdown && (
+                      placeholder="例如：数据库"
+                      className={styles.formInput}
+                      onFocus={() => githubToken && (setShowSeriesDropdown(true), availableSeries.length === 0 && loadSeriesList())}
+                    />
+                    {githubToken ? (
+                      <button
+                        type="button"
+                        className={styles.seriesDropdownBtn}
+                        onClick={() => {
+                          if (availableSeries.length === 0) loadSeriesList();
+                          setShowSeriesDropdown(!showSeriesDropdown);
+                        }}
+                        title="选择已有系列"
+                      >
+                        ▼
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        className={`${styles.seriesDropdownBtn} ${styles.seriesNoTokenBtn}`}
+                        onClick={() => setShowSeriesDropdown(!showSeriesDropdown)}
+                        title="需要先设置 GitHub Token"
+                      >
+                        ▼
+                      </button>
+                    )}
+                  </div>
+                  {/* 系列下拉列表 */}
+                  {showSeriesDropdown && (
                   <div className={styles.seriesDropdown}>
                     {!githubToken ? (
                       <div className={styles.seriesDropdownTokenInput}>
@@ -479,9 +480,13 @@ export default function WriteTab({
                             setEditingPath(s.path);
                             setEditingSeriesArticleTitle(undefined);
                             setShowSeriesDropdown(false);
-                            // 同步分类
+                            // 同步分类、标签、摘要
                             const catMatch = s.path.match(/^docs\/([^/]+)\//);
-                            if (catMatch) handleChange({ category: catMatch[1] });
+                            handleChange({
+                              category: catMatch ? catMatch[1] : '',
+                              tags: s.tags.join(', '),
+                              description: s.description || '',
+                            });
                           }}
                         >
                           📚 {s.title}
@@ -505,6 +510,7 @@ export default function WriteTab({
                   </div>
                 )}
               </div>
+            </div>
             </div>
 
             {/* 子文章标题 */}
@@ -595,7 +601,7 @@ export default function WriteTab({
       {/* 预览弹窗 */}
       {showPreview && (
         <PreviewModal
-          title={articleData.title}
+          title={articleMode === 'series' ? articleTitle || seriesTitle : articleData.title}
           content={articleData.markdownContent}
           onClose={() => setShowPreview(false)}
         />
