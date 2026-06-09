@@ -1,6 +1,6 @@
 {
   "stats": {
-    "notes": 4,
+    "notes": 5,
     "codeSnippets": 10,
     "projects": 0
   },
@@ -15,6 +15,15 @@
       "sidebar_position": 2
     },
     {
+      "title": "三种完整性规则",
+      "description": "数据库的实体完整性、参照完整性和用户定义完整性三大约束规则 ## 一、基本概念 ## 二、具体实例",
+      "link": "/docs/backend/database/integrity-rules",
+      "tag": "数据库",
+      "icon": "🐍",
+      "date": null,
+      "sidebar_position": 2
+    },
+    {
       "title": "Python 基础语法",
       "description": "Python 是一种简洁、易读的编程语言，适合初学者学习。 ## 变量和数据类型 ## 控制流 ## 函数 ## 列表推导式 ## 文件操作 ## 异常处理 ## 模块和包",
       "link": "/docs/backend/python-basics",
@@ -25,7 +34,7 @@
     },
     {
       "title": "三层模式与二级映射",
-      "description": "--- title: 三层模式与二级映射 sidebar_position: 2 date: 2026-06-08 tags: [数据库, MySQL, DBMS] description: 数据库系...",
+      "description": "数据库系统的三级模式结构和二级映射机制 ## 一、三层模式 ## 二、二级映射 ## 实例 ## 总结",
       "link": "/docs/backend/database/three-level-schema",
       "tag": "数据库",
       "icon": "🐍",
@@ -62,6 +71,10 @@
         {
           "name": "三层模式与二级映射",
           "link": "/docs/backend/database/three-level-schema"
+        },
+        {
+          "name": "三种完整性规则",
+          "link": "/docs/backend/database/integrity-rules"
         }
       ]
     },
