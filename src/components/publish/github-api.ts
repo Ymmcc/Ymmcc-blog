@@ -348,8 +348,69 @@ ${body.trim()}
   return md;
 }
 
-// 获取所有系列文章
-export async function fetchSeriesList(token: string): Promise<SeriesInfo[]> {
+/*** 系列列表缓存 ***/
+
+// 简单的哈希函数用于缓存 key（非安全用途）
+function hashStr(s: string): string {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) {
+    h = ((h << 5) - h) + s.charCodeAt(i);
+    h |= 0;
+  }
+  return Math.abs(h).toString(36);
+}
+
+const SERIES_CACHE_KEY = 'myblog_series_list_cache';
+const SERIES_CACHE_TTL = 10 * 60 * 1000; // 10 分钟
+
+interface SeriesCacheEntry {
+  tokenHash: string;
+  data: SeriesInfo[];
+  time: number;
+}
+
+function getCachedSeries(token: string): SeriesInfo[] | null {
+  try {
+    const raw = localStorage.getItem(SERIES_CACHE_KEY);
+    if (!raw) return null;
+    const entry: SeriesCacheEntry = JSON.parse(raw);
+    if (entry.tokenHash !== hashStr(token)) return null;
+    if (Date.now() - entry.time > SERIES_CACHE_TTL) return null;
+    return entry.data;
+  } catch {
+    return null;
+  }
+}
+
+function saveCachedSeries(token: string, data: SeriesInfo[]) {
+  try {
+    const entry: SeriesCacheEntry = {
+      tokenHash: hashStr(token),
+      data,
+      time: Date.now(),
+    };
+    localStorage.setItem(SERIES_CACHE_KEY, JSON.stringify(entry));
+  } catch {
+    // localStorage 不可用时忽略
+  }
+}
+
+// 清除系列列表缓存
+export function clearSeriesCache() {
+  try {
+    localStorage.removeItem(SERIES_CACHE_KEY);
+  } catch { /* ignore */ }
+}
+
+// 获取所有系列文章（带缓存）
+// cache: true（默认）使用 localStorage 缓存，cache: false 强制从 GitHub 重新拉取
+export async function fetchSeriesList(token: string, cache = true): Promise<SeriesInfo[]> {
+  // 检查缓存
+  if (cache) {
+    const cached = getCachedSeries(token);
+    if (cached) return cached;
+  }
+
   const files = await fetchFileList(token);
   const seriesList: SeriesInfo[] = [];
 
@@ -373,5 +434,7 @@ export async function fetchSeriesList(token: string): Promise<SeriesInfo[]> {
     }
   }
 
+  // 保存到缓存
+  saveCachedSeries(token, seriesList);
   return seriesList;
 }

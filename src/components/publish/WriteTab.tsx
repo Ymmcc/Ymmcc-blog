@@ -49,6 +49,9 @@ export default function WriteTab({
   const [availableSeries, setAvailableSeries] = useState<SeriesInfo[]>([]);
   const [showSeriesDropdown, setShowSeriesDropdown] = useState(false);
   const [loadingSeries, setLoadingSeries] = useState(false);
+  // 追踪当前 token 的系列列表加载状态，避免重复加载和闪烁
+  const loadedTokenRef = useRef<string>('');    // 已成功加载的 token
+  const loadingTokenRef = useRef<string>('');   // 正在加载的 token
   // 编辑系列子文章时：记录当前编辑的是系列中的哪篇文章
   const [editingSeriesArticleTitle, setEditingSeriesArticleTitle] = useState<string | undefined>(
     editMode?.type === 'series-article' ? editMode.articleTitle : undefined
@@ -56,6 +59,9 @@ export default function WriteTab({
 
   const containerRef = useRef<HTMLDivElement>(null);
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // 用 ref 记录最新的 githubToken，确保 loadSeriesList 中始终能读到最新值
+  const githubTokenRef = useRef(githubToken);
+  useEffect(() => { githubTokenRef.current = githubToken; }, [githubToken]);
 
   // 加载编辑模式数据
   useEffect(() => {
@@ -89,15 +95,29 @@ export default function WriteTab({
   }, [editMode]);
 
   // 加载系列列表
-  const loadSeriesList = useCallback(() => {
-    if (!githubToken || loadingSeries) return;
+  // 可传入 token 参数，以便在 inline 输入 token 时直接触发加载（避免 React 状态更新延迟导致的闪烁）
+  const loadSeriesList = useCallback((token?: string) => {
+    const t = token || githubTokenRef.current;
+    if (!t || t.length < 20) return;
+    // 已加载过该 token 的系列列表，不再重复加载
+    if (t === loadedTokenRef.current) return;
+    // 正在加载中
+    if (t === loadingTokenRef.current) return;
+
+    loadingTokenRef.current = t;
     setLoadingSeries(true);
     setShowSeriesDropdown(true);
-    fetchSeriesList(githubToken)
-      .then(list => setAvailableSeries(list))
+    fetchSeriesList(t)
+      .then(list => {
+        setAvailableSeries(list);
+        loadedTokenRef.current = t;
+      })
       .catch(() => {})
-      .finally(() => setLoadingSeries(false));
-  }, [githubToken, loadingSeries]); // eslint-disable-line react-hooks/exhaustive-deps
+      .finally(() => {
+        setLoadingSeries(false);
+        loadingTokenRef.current = '';
+      });
+  }, []); // stable reference — 通过 githubTokenRef 读取最新 token
 
   // 入场动画
   useEffect(() => {
@@ -107,11 +127,12 @@ export default function WriteTab({
   }, []);
 
   // 切换到系列模式时自动加载已有系列列表
+  // token 可用时（从 inline 输入或外部传入）也自动加载
   useEffect(() => {
-    if (articleMode === 'series') {
+    if (articleMode === 'series' && githubToken && githubToken.length >= 20 && !loadingSeries) {
       loadSeriesList();
     }
-  }, [articleMode]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [articleMode, githubToken]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Ctrl+S 快捷键保存草稿
   useEffect(() => {
@@ -462,13 +483,39 @@ export default function WriteTab({
                           type="password"
                           placeholder="输入 GitHub Token..."
                           className={styles.seriesTokenInlineInput}
-                          onChange={e => onGithubTokenChange?.(e.target.value)}
+                          onChange={e => {
+                            onGithubTokenChange?.(e.target.value);
+                            // 同步触发加载，避免先渲染"暂无系列"再等待 effect
+                            if (e.target.value.length >= 20) {
+                              loadSeriesList(e.target.value);
+                            }
+                          }}
                         />
                       </div>
                     ) : loadingSeries ? (
-                      <div className={styles.seriesDropdownItem}>加载中...</div>
+                      <div className={styles.seriesDropdownItem}>
+                        <span className={styles.seriesDropdownLoading}>⏳ 加载系列列表...</span>
+                      </div>
+                    ) : availableSeries.length === 0 && loadedTokenRef.current === githubToken ? (
+                      <div className={styles.seriesDropdownItem}>
+                        <span>📭 暂无系列</span>
+                        <button
+                          className={styles.seriesDropdownRefresh}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            loadedTokenRef.current = '';
+                            loadingTokenRef.current = '';
+                            loadSeriesList();
+                          }}
+                        >
+                          🔄 刷新
+                        </button>
+                      </div>
                     ) : availableSeries.length === 0 ? (
-                      <div className={styles.seriesDropdownItem}>暂无系列</div>
+                      // 还没有加载过，显示等待状态（effect 会触发加载）
+                      <div className={styles.seriesDropdownItem}>
+                        <span className={styles.seriesDropdownLoading}>⏳ 正在获取系列列表...</span>
+                      </div>
                     ) : (
                       availableSeries.map(s => (
                         <button

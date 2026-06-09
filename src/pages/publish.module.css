@@ -2313,6 +2313,50 @@ select.formInput {
   margin-left: 8px;
 }
 
+.seriesDropdownLoading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #6b7280;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+.seriesDropdownRefresh {
+  margin-left: 10px;
+  padding: 2px 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: transparent;
+  color: #6b7280;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  vertical-align: middle;
+}
+
+.seriesDropdownRefresh:hover {
+  background: #667eea;
+  border-color: #667eea;
+  color: white;
+}
+
+[data-theme='dark'] .seriesDropdownRefresh {
+  border-color: rgba(255, 255, 255, 0.3);
+  color: #94a3b8;
+}
+
+[data-theme='dark'] .seriesDropdownRefresh:hover {
+  background: #667eea;
+  border-color: #667eea;
+  color: white;
+}
+
 .seriesDropdownNew {
   border-top: 1px solid #e5e7eb;
   color: #667eea;
