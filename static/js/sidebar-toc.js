@@ -1,29 +1,122 @@
-// 侧边栏 TOC 集成脚本
 (function() {
   'use strict';
 
-  // 延迟执行，确保页面完全加载
+  // 存储当前页面的 TOC 状态
+  var currentArticleTOC = null;
+  var currentArrow = null;
+
+  // 获取标题级别
+  function getHeadingLevel(link) {
+    var href = link.getAttribute('href') || '';
+    var match = href.match(/^#(.+)/);
+    if (!match) return 2;
+    var id = match[1];
+    var target = document.getElementById(id);
+    if (!target) return 2;
+    var tag = target.tagName.toLowerCase();
+    if (tag === 'h1') return 1;
+    if (tag === 'h2') return 2;
+    if (tag === 'h3') return 3;
+    if (tag === 'h4') return 4;
+    if (tag === 'h5') return 5;
+    if (tag === 'h6') return 6;
+    return 2;
+  }
+
+  // 清除旧的 TOC
+  function cleanupOldTOC() {
+    var oldContainers = document.querySelectorAll('.sidebar-toc');
+    oldContainers.forEach(function(el) {
+      if (el.parentElement) {
+        el.parentElement.removeChild(el);
+      }
+    });
+    var oldArrows = document.querySelectorAll('.sidebar-toc-arrow');
+    oldArrows.forEach(function(el) {
+      if (el.parentElement) {
+        el.parentElement.removeChild(el);
+      }
+    });
+    currentArticleTOC = null;
+    currentArrow = null;
+  }
+
+  // 检查父级菜单是否折叠
+  function isParentMenuCollapsed(articleLi) {
+    // 查找所有父级 menu__list 元素
+    var parentLists = articleLi.parentElement ? articleLi.parentElement.closest('.menu__list') : null;
+    if (!parentLists) return false;
+
+    // 检查父级菜单是否隐藏
+    var style = window.getComputedStyle(parentLists);
+    if (style.display === 'none' || style.visibility === 'hidden') {
+      return true;
+    }
+
+    // 检查 hidden 属性
+    if (parentLists.hasAttribute('hidden')) {
+      return true;
+    }
+
+    return false;
+  }
+
+  // 隐藏 TOC
+  function hideTOC() {
+    if (currentArticleTOC) {
+      currentArticleTOC.style.display = 'none';
+    }
+    if (currentArrow) {
+      currentArrow.style.transform = 'rotate(-90deg)';
+    }
+  }
+
+  // 显示 TOC
+  function showTOC() {
+    if (currentArticleTOC) {
+      currentArticleTOC.style.display = 'block';
+    }
+    if (currentArrow) {
+      currentArrow.style.transform = 'rotate(0deg)';
+    }
+  }
+
+  // 初始化侧边栏 TOC
   function initSidebarTOC() {
-    // 获取右侧 TOC
+    // 查找右侧的目录
     var toc = document.querySelector('.theme-doc-toc-desktop .table-of-contents');
-    if (!toc) return;
+    if (!toc) {
+      return;
+    }
 
-    // 获取当前文章标题
+    // 查找当前激活的文章标题
     var articleTitle = document.querySelector('.theme-doc-sidebar-menu .menu__link--active');
-    if (!articleTitle) return;
+    if (!articleTitle) {
+      return;
+    }
 
-    // 获取文章标题所在的 li 元素
+    // 查找包含该标题的 li 元素
     var articleLi = articleTitle.closest('li');
-    if (!articleLi) return;
+    if (!articleLi) {
+      return;
+    }
 
     // 检查是否已经添加了 TOC
-    if (articleLi.querySelector('.sidebar-toc')) return;
+    if (articleLi.querySelector('.sidebar-toc')) {
+      // 更新引用
+      currentArticleTOC = articleLi.querySelector('.sidebar-toc');
+      currentArrow = articleTitle.querySelector('.sidebar-toc-arrow');
+      return;
+    }
+
+    // 清除旧的 TOC
+    cleanupOldTOC();
 
     // 创建 TOC 容器
     var tocContainer = document.createElement('ul');
     tocContainer.className = 'sidebar-toc';
 
-    // 复制 TOC 内容
+    // 复制目录项
     var tocItems = toc.querySelectorAll('li');
     tocItems.forEach(function(item) {
       var link = item.querySelector('a');
@@ -32,7 +125,6 @@
       var tocItem = document.createElement('li');
       tocItem.className = 'sidebar-toc-item';
 
-      // 根据标题层级添加缩进
       var level = getHeadingLevel(link);
       if (level > 2) {
         tocItem.classList.add('sidebar-toc-item--level-' + level);
@@ -43,82 +135,162 @@
       tocLink.textContent = link.textContent;
       tocLink.className = 'sidebar-toc-link';
 
+      // 点击链接时滚动到目标位置
+      tocLink.addEventListener('click', function(e) {
+        e.preventDefault();
+        var targetId = link.getAttribute('href').substring(1);
+        var targetElement = document.getElementById(targetId);
+        if (targetElement) {
+          targetElement.scrollIntoView({ behavior: 'smooth' });
+        }
+      });
+
       tocItem.appendChild(tocLink);
       tocContainer.appendChild(tocItem);
     });
 
-    // 插入到文章标题的 li 元素内
+    // 将 TOC 添加到文章标题的 li 元素中
     articleLi.appendChild(tocContainer);
 
-    // 添加展开/折叠交互
-    setupToggle(articleTitle, tocContainer);
+    // 设置折叠/展开功能
+    var arrow = setupToggle(articleTitle, tocContainer);
+
+    // 存储引用
+    currentArticleTOC = tocContainer;
+    currentArrow = arrow;
+
+    // 初始检查父级菜单状态
+    if (isParentMenuCollapsed(articleLi)) {
+      hideTOC();
+    }
   }
 
-  function getHeadingLevel(link) {
-    var href = link.getAttribute('href');
-    if (!href) return 2;
-
-    // 从 href 中提取标题 ID
-    var id = href.split('#')[1];
-    if (!id) return 2;
-
-    // 查找对应的标题元素
-    var heading = document.getElementById(id);
-    if (!heading) return 2;
-
-    // 根据标题标签判断层级
-    var tag = heading.tagName.toLowerCase();
-    if (tag === 'h2') return 2;
-    if (tag === 'h3') return 3;
-    if (tag === 'h4') return 4;
-    if (tag === 'h5') return 5;
-    if (tag === 'h6') return 6;
-
-    return 2;
-  }
-
+  // 设置折叠/展开功能
   function setupToggle(titleElement, tocContainer) {
-    // 添加展开/折叠箭头
+    // 创建箭头
     var arrow = document.createElement('span');
     arrow.className = 'sidebar-toc-arrow';
-    arrow.innerHTML = '▼';
-
+    arrow.innerHTML = ' ▼';
     titleElement.appendChild(arrow);
 
-    // 默认展开
+    // 初始状态：展开
     tocContainer.style.display = 'block';
     arrow.style.transform = 'rotate(0deg)';
 
-    // 点击箭头展开/折叠
+    // 点击箭头切换显示状态
     arrow.addEventListener('click', function(e) {
       e.preventDefault();
       e.stopPropagation();
 
       var isVisible = tocContainer.style.display !== 'none';
-      tocContainer.style.display = isVisible ? 'none' : 'block';
-      arrow.style.transform = isVisible ? 'rotate(-90deg)' : 'rotate(0deg)';
+      if (isVisible) {
+        tocContainer.style.display = 'none';
+        arrow.style.transform = 'rotate(-90deg)';
+      } else {
+        tocContainer.style.display = 'block';
+        arrow.style.transform = 'rotate(0deg)';
+      }
     });
+
+    return arrow;
   }
 
-  // 页面加载后初始化
+  // 监听父级菜单折叠状态变化
+  function setupParentMenuObserver() {
+    // 使用 MutationObserver 监听父级菜单的样式变化
+    var observer = new MutationObserver(function(mutations) {
+      mutations.forEach(function(mutation) {
+        if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
+          var target = mutation.target;
+          // 检查是否是 menu__list 元素
+          if (target.classList && target.classList.contains('menu__list')) {
+            var style = window.getComputedStyle(target);
+            if (style.display === 'none') {
+              // 父级菜单被折叠，隐藏 TOC
+              hideTOC();
+            } else {
+              // 父级菜单被展开，显示 TOC
+              showTOC();
+            }
+          }
+        }
+      });
+    });
+
+    // 开始观察所有 menu__list 元素
+    var menuLists = document.querySelectorAll('.menu__list');
+    menuLists.forEach(function(list) {
+      observer.observe(list, { attributes: true, attributeFilter: ['style'] });
+    });
+
+    return observer;
+  }
+
+  // 监听页面变化
+  function setupPageListeners() {
+    // 监听浏览器前进/后退
+    window.addEventListener('popstate', function() {
+      setTimeout(initSidebarTOC, 100);
+    });
+
+    // 监听所有链接点击（使用事件委托）
+    document.addEventListener('click', function(e) {
+      var link = e.target.closest('a');
+      if (!link) return;
+
+      // 检查是否是侧边栏链接
+      var isSidebarLink = link.closest('.theme-doc-sidebar-menu');
+      // 检查是否是目录链接
+      var isTOCLink = link.closest('.sidebar-toc');
+
+      if (isSidebarLink && !isTOCLink) {
+        // 延迟初始化，等待页面内容加载
+        setTimeout(initSidebarTOC, 300);
+      }
+    });
+
+    // 使用 MutationObserver 监听 DOM 变化
+    var observer = new MutationObserver(function(mutations) {
+      // 检查是否有新的目录被添加
+      var hasTOCChanges = mutations.some(function(mutation) {
+        return mutation.addedNodes.length > 0 || mutation.removedNodes.length > 0;
+      });
+
+      if (hasTOCChanges) {
+        // 延迟初始化，避免频繁触发
+        setTimeout(initSidebarTOC, 200);
+      }
+    });
+
+    // 开始观察
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true
+    });
+
+    // 设置父级菜单观察器
+    setupParentMenuObserver();
+  }
+
+  // 初始化函数
+  function init() {
+    // 设置页面监听器
+    setupPageListeners();
+
+    // 首次初始化
+    initSidebarTOC();
+  }
+
+  // 确保 DOM 加载完成后初始化
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', function() {
-      setTimeout(initSidebarTOC, 500);
-    });
+    document.addEventListener('DOMContentLoaded', init);
   } else {
-    setTimeout(initSidebarTOC, 500);
+    // DOM 已经加载完成
+    init();
   }
 
-  // 监听路由变化
-  window.addEventListener('popstate', function() {
-    setTimeout(initSidebarTOC, 500);
-  });
-
-  // 监听点击链接事件
-  document.addEventListener('click', function(e) {
-    var link = e.target.closest('a');
-    if (link && link.href && link.href.indexOf('/docs/') !== -1) {
-      setTimeout(initSidebarTOC, 500);
-    }
-  });
+  // 额外的延迟初始化（确保 Docusaurus 完成渲染）
+  setTimeout(initSidebarTOC, 500);
+  setTimeout(initSidebarTOC, 1000);
+  setTimeout(initSidebarTOC, 2000);
 })();
