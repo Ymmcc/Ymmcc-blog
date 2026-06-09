@@ -44,20 +44,19 @@
   // 检查父级菜单是否折叠
   function isParentMenuCollapsed(articleLi) {
     // 查找所有父级 menu__list 元素
-    var parentLists = articleLi.parentElement ? articleLi.parentElement.closest('.menu__list') : null;
-    if (!parentLists) return false;
-
-    // 检查父级菜单是否隐藏
-    var style = window.getComputedStyle(parentLists);
-    if (style.display === 'none' || style.visibility === 'hidden') {
-      return true;
+    var parent = articleLi.parentElement;
+    while (parent) {
+      if (parent.classList && parent.classList.contains('menu__list')) {
+        var style = window.getComputedStyle(parent);
+        if (style.display === 'none' || style.visibility === 'hidden') {
+          return true;
+        }
+        if (parent.hasAttribute('hidden')) {
+          return true;
+        }
+      }
+      parent = parent.parentElement;
     }
-
-    // 检查 hidden 属性
-    if (parentLists.hasAttribute('hidden')) {
-      return true;
-    }
-
     return false;
   }
 
@@ -89,14 +88,18 @@
       return;
     }
 
-    // 查找当前激活的文章标题
-    var articleTitle = document.querySelector('.theme-doc-sidebar-menu .menu__link--active');
-    if (!articleTitle) {
+    // 查找当前激活的文章标题 - 使用更精确的选择器
+    // Docusaurus 结构：menu__list-item > menu__link menu__link--active
+    var activeLinks = document.querySelectorAll('.theme-doc-sidebar-menu .menu__link--active');
+    if (!activeLinks || activeLinks.length === 0) {
       return;
     }
 
+    // 取最后一个激活的链接（最深层级的）
+    var articleTitle = activeLinks[activeLinks.length - 1];
+
     // 查找包含该标题的 li 元素
-    var articleLi = articleTitle.closest('li');
+    var articleLi = articleTitle.closest('li.menu__list-item');
     if (!articleLi) {
       return;
     }
