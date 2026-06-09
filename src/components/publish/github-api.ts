@@ -291,11 +291,22 @@ ${markdownBody}
 }
 
 // 根据分类和标题生成文件路径
-export function getFilePath(category: string, title: string): string {
+export function getFilePath(category: string, title: string, isSeries = false): string {
   const slug = title
     .toLowerCase()
     .replace(/[^a-z0-9一-龥]+/g, '-')
     .replace(/(^-|-$)/g, '');
+
+  // 系列文章存为目录结构，侧边栏自动成为独立分类
+  if (isSeries) {
+    switch (category) {
+      case 'frontend': return `docs/frontend/${slug}/index.md`;
+      case 'backend': return `docs/backend/${slug}/index.md`;
+      case 'algorithm': return `docs/algorithm/${slug}/index.md`;
+      case 'projects': return `docs/projects/${slug}/index.md`;
+      default: return `docs/${slug}/index.md`;
+    }
+  }
 
   switch (category) {
     case 'frontend': return `docs/frontend/${slug}.md`;

@@ -281,7 +281,7 @@ export default function WriteTab({
           description: articleData.description,
           articles: existingArticles,
         });
-        const path = editingPath || getFilePath(articleData.category, seriesTitle);
+        const path = editingPath || getFilePath(articleData.category, seriesTitle, true);
         await upsertFile(token, path, seriesContent, `feat: ${shaToUse ? '更新' : '添加'}系列文章 "${seriesTitle}"`, shaToUse);
 
         setStatusMsg({ type: 'success', text: '系列文章发布成功！GitHub Actions 将自动部署' });
