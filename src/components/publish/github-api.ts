@@ -1,4 +1,4 @@
-import { GitHubFile, ArticleMeta } from './types';
+import { GitHubFile, ArticleMeta, SeriesArticle, SeriesInfo } from './types';
 import TurndownService from 'turndown';
 
 const REPO_OWNER = 'Ymmcc';
@@ -38,6 +38,61 @@ export function parseFrontmatter(content: string): ArticleMeta {
   const description = fm.match(/description:\s*(.+)/)?.[1]?.trim() || '';
 
   return { title, date, tags, description };
+}
+
+// 判断是否为系列文章
+export function isSeriesContent(content: string): boolean {
+  const match = content.match(/^---\n([\s\S]*?)\n---/);
+  if (!match) return false;
+  return match[1].includes('series: true');
+}
+
+// 解析系列文章内容
+export function parseSeriesContent(content: string): {
+  seriesTitle: string;
+  tags: string[];
+  description: string;
+  articles: SeriesArticle[];
+} {
+  const meta = parseFrontmatter(content);
+
+  // 提取所有 <details> 块
+  const articles: SeriesArticle[] = [];
+  const detailsRegex = /<details\s*[^>]*>([\s\S]*?)<\/details>/g;
+  let match;
+  let index = 0;
+
+  while ((match = detailsRegex.exec(content)) !== null) {
+    const block = match[1];
+
+    // 提取 summary 作为标题
+    const summaryMatch = block.match(/<summary>([\s\S]*?)<\/summary>/);
+    let title = summaryMatch ? summaryMatch[1].trim() : `文章 ${index + 1}`;
+    // 清理 HTML 标签和装饰字符
+    title = title.replace(/<[^>]+>/g, '').replace(/^[^\w一-龥]+/, '').trim();
+
+    // 提取正文（</summary> 之后的内容）
+    const contentMatch = block.match(/<\/summary>([\s\S]*)$/);
+    const articleContent = contentMatch ? contentMatch[1].trim() : '';
+
+    // 尝试提取日期
+    const dateMatch = articleContent.match(/\d{4}-\d{2}-\d{2}/);
+    const date = dateMatch ? dateMatch[0] : (meta.date || '');
+
+    articles.push({
+      id: `article_${index++}`,
+      title,
+      date,
+      content: articleContent,
+    });
+  }
+
+  return {
+    seriesTitle: meta.title,
+    tags: meta.tags,
+    description: meta.description,
+    articles,
+  };
 }
 
 // 获取文件列表（递归）
@@ -164,7 +219,52 @@ export async function uploadImage(token: string, filename: string, base64Data: s
     throw new Error(error.message || '图片上传失败');
   }
 
-  return `/img/uploads/${filename}`;
+  // 返回 jsDelivr CDN 链接加速国内访问
+  // 图片存储在 GitHub 仓库中，通过 CDN 分发速度更快
+  return `https://cdn.jsdelivr.net/gh/${REPO_OWNER}/${REPO_NAME}@main/${path}`;
+}
+
+/*** 图片优化 ***/
+
+// 客户端图片压缩（上传前压缩，减小体积）
+// maxWidth: 最大宽度（默认 1920），quality: 压缩质量 0-1（默认 0.8）
+export function compressImage(
+  base64Data: string,
+  maxWidth = 1920,
+  quality = 0.8
+): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      // 计算缩放尺寸
+      let { width, height } = img;
+      if (width > maxWidth) {
+        height = Math.round((height * maxWidth) / width);
+        width = maxWidth;
+      }
+
+      // 用 Canvas 压缩
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) { resolve(base64Data); return; }
+
+      ctx.drawImage(img, 0, 0, width, height);
+      resolve(canvas.toDataURL('image/jpeg', quality));
+    };
+    img.onerror = () => reject(new Error('图片加载失败'));
+    img.src = base64Data;
+  });
+}
+
+// 给 HTML 中的所有 <img> 添加懒加载和渐进式加载效果
+export function optimizeImageTags(html: string): string {
+  return html
+    // 添加 loading="lazy"
+    .replace(/<img\s/g, '<img loading="lazy" ')
+    // 添加解码方式（渐进式渲染）
+    .replace(/<img\s/g, '<img decoding="async" ');
 }
 
 // 生成 Markdown 内容（将 HTML 转换为 Markdown）
@@ -204,4 +304,74 @@ export function getFilePath(category: string, title: string): string {
     case 'projects': return `docs/projects/${slug}.md`;
     default: return `docs/${slug}.md`;
   }
+}
+
+/*** 系列文章相关 ***/
+
+// 生成系列文章 Markdown
+export function generateSeriesMarkdown(
+  data: {
+    seriesTitle: string;
+    tags: string;
+    description: string;
+    articles: { title: string; content: string }[];
+  }
+): string {
+  const date = new Date().toISOString().split('T')[0];
+  const tagsArray = data.tags.split(',').map(t => t.trim()).filter(Boolean);
+
+  let md = `---
+title: ${data.seriesTitle}
+date: ${date}
+tags: [${tagsArray.join(', ')}]
+description: ${data.description}
+series: true
+---
+
+# ${data.seriesTitle}
+
+`;
+
+  data.articles.forEach((article, index) => {
+    const body = turndownService.turndown(article.content);
+
+    md += `<details${index === 0 ? ' open' : ''}>
+<summary><strong>📖 ${article.title}</strong></summary>
+
+${body.trim()}
+
+</details>
+
+`;
+  });
+
+  return md;
+}
+
+// 获取所有系列文章
+export async function fetchSeriesList(token: string): Promise<SeriesInfo[]> {
+  const files = await fetchFileList(token);
+  const seriesList: SeriesInfo[] = [];
+
+  for (const file of files) {
+    try {
+      const { content } = await fetchFileContent(token, file.path);
+      if (isSeriesContent(content)) {
+        const parsed = parseSeriesContent(content);
+        seriesList.push({
+          title: parsed.seriesTitle,
+          path: file.path,
+          sha: file.sha,
+          articles: parsed.articles,
+          date: parsed.articles.length > 0 ? parsed.articles[parsed.articles.length - 1].date : '',
+          tags: parsed.tags,
+          description: parsed.description,
+        });
+      }
+    } catch {
+      // 跳过无法读取的文件
+    }
+  }
+
+  return seriesList;
 }

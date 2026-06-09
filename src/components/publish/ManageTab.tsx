@@ -1,20 +1,26 @@
 import React, { useState, useRef, useEffect } from 'react';
 import gsap from 'gsap';
 import styles from '../../pages/publish.module.css';
-import { GitHubFile, ArticleMeta } from './types';
-import { fetchFileList, fetchFileContent, parseFrontmatter, deleteFile } from './github-api';
+import { GitHubFile, ArticleMeta, SeriesInfo } from './types';
+import { fetchFileList, fetchFileContent, parseFrontmatter, deleteFile, isSeriesContent, parseSeriesContent, upsertFile } from './github-api';
 
 interface Props {
   token: string;
   onTokenChange: (token: string) => void;
   onEditArticle: (content: string, sha: string, path: string) => void;
+  onEditSeriesArticle?: (seriesPath: string, seriesSha: string, seriesTitle: string, articleTitle: string, articleContent: string) => void;
 }
 
 interface ArticleItem extends GitHubFile {
   meta: ArticleMeta;
 }
 
-export default function ManageTab({ token, onTokenChange, onEditArticle }: Props) {
+interface SeriesItem {
+  info: SeriesInfo;
+  category: string;
+}
+
+export default function ManageTab({ token, onTokenChange, onEditArticle, onEditSeriesArticle }: Props) {
   const [articles, setArticles] = useState<ArticleItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
@@ -22,6 +28,8 @@ export default function ManageTab({ token, onTokenChange, onEditArticle }: Props
   const [sortBy, setSortBy] = useState<'newest' | 'oldest'>('newest');
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [statusMsg, setStatusMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [expandedSeries, setExpandedSeries] = useState<string | null>(null);
+  const [seriesList, setSeriesList] = useState<SeriesItem[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -43,18 +51,38 @@ export default function ManageTab({ token, onTokenChange, onEditArticle }: Props
     try {
       const files = await fetchFileList(token);
       const articleItems: ArticleItem[] = [];
+      const seriesItems: SeriesItem[] = [];
 
       for (const file of files) {
         try {
           const { content } = await fetchFileContent(token, file.path);
           const meta = parseFrontmatter(content);
-          articleItems.push({ ...file, meta });
+
+          if (isSeriesContent(content)) {
+            const parsed = parseSeriesContent(content);
+            const catMatch = file.path.match(/^docs\/([^/]+)\//);
+            seriesItems.push({
+              info: {
+                title: parsed.seriesTitle,
+                path: file.path,
+                sha: file.sha,
+                articles: parsed.articles,
+                date: parsed.articles.length > 0 ? parsed.articles[parsed.articles.length - 1].date : '',
+                tags: parsed.tags,
+                description: parsed.description,
+              },
+              category: catMatch ? catMatch[1] : '',
+            });
+          } else {
+            articleItems.push({ ...file, meta });
+          }
         } catch {
           // 跳过无法读取的文件
         }
       }
 
       setArticles(articleItems);
+      setSeriesList(seriesItems);
     } catch (err) {
       setStatusMsg({ type: 'error', text: err instanceof Error ? err.message : '加载失败' });
     } finally {
@@ -107,6 +135,90 @@ export default function ManageTab({ token, onTokenChange, onEditArticle }: Props
     }
   };
 
+  // 编辑系列文章中的子文章
+  const handleEditSeriesArticle = async (series: SeriesItem, article: { title: string; content: string }) => {
+    if (!token) {
+      setStatusMsg({ type: 'error', text: '请先输入 GitHub Token' });
+      return;
+    }
+    try {
+      const { content: fullContent } = await fetchFileContent(token, series.info.path);
+      const parsed = parseSeriesContent(fullContent);
+      const target = parsed.articles.find(a => a.title === article.title);
+      if (!target) {
+        setStatusMsg({ type: 'error', text: '找不到该文章' });
+        return;
+      }
+      onEditSeriesArticle?.(series.info.path, series.info.sha, series.info.title, article.title, target.content);
+    } catch {
+      setStatusMsg({ type: 'error', text: '加载文章内容失败' });
+    }
+  };
+
+  // 查看系列文章中的子文章
+  const handleViewSeriesArticle = (series: SeriesItem, article: { title: string }) => {
+    const slug = series.info.path.replace(/^docs\//, '').replace(/\.md$/, '');
+    const hash = encodeURIComponent(article.title);
+    window.open(`/docs/${slug}?article=${hash}`, '_blank');
+  };
+
+  // 批量替换旧图片链接为 CDN 链接
+  const REPO_PATH = 'https://cdn.jsdelivr.net/gh/Ymmcc/Ymmcc-blog@main';
+  const handleReplaceImageUrls = async () => {
+    if (!token) {
+      setStatusMsg({ type: 'error', text: '请先输入 GitHub Token' });
+      return;
+    }
+
+    setLoading(true);
+    setStatusMsg({ type: 'success', text: '正在扫描所有文章中的图片链接...' });
+
+    let replacedCount = 0;
+    let totalFiles = 0;
+
+    try {
+      const files = await fetchFileList(token);
+
+      for (const file of files) {
+        try {
+          const { content, sha } = await fetchFileContent(token, file.path);
+
+          // 找出旧链接 /img/uploads/xxx → CDN 链接
+          const oldPattern = /\/img\/uploads\//g;
+          if (!oldPattern.test(content)) continue;
+
+          const newContent = content.replace(
+            /\/img\/uploads\//g,
+            `${REPO_PATH}/static/img/uploads/`
+          );
+
+          await upsertFile(
+            token, file.path, newContent,
+            `perf: 替换图片链接为 CDN 加速 - ${file.name}`,
+            sha
+          );
+
+          replacedCount++;
+          totalFiles++;
+        } catch {
+          totalFiles++;
+        }
+      }
+
+      setStatusMsg({
+        type: 'success',
+        text: `✅ 替换完成！共处理 ${replacedCount} 个文件中的图片链接为 CDN 加速`
+      });
+
+      // 刷新列表
+      loadArticles();
+    } catch (err) {
+      setStatusMsg({ type: 'error', text: err instanceof Error ? err.message : '替换失败' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // 查看文章
   const handleView = (article: ArticleItem) => {
     const slug = article.path.replace(/^docs\//, '').replace(/\.md$/, '');
@@ -133,6 +245,14 @@ export default function ManageTab({ token, onTokenChange, onEditArticle }: Props
         />
         <button onClick={loadArticles} disabled={loading || !token} className={styles.loadBtn}>
           {loading ? '加载中...' : '加载文章'}
+        </button>
+        <button
+          onClick={handleReplaceImageUrls}
+          disabled={loading || !token}
+          className={styles.cdnBtn}
+          title="将文章中 /img/uploads/ 开头的图片链接替换为 CDN 链接，加速国内访问"
+        >
+          🚀 图片CDN加速
         </button>
       </div>
 
@@ -167,13 +287,88 @@ export default function ManageTab({ token, onTokenChange, onEditArticle }: Props
       </div>
 
       {/* 文章列表 */}
-      {articles.length === 0 && !loading ? (
+      {seriesList.length === 0 && articles.length === 0 && !loading ? (
         <div className={styles.emptyState}>
           <div style={{ fontSize: '64px', marginBottom: '16px' }}>📚</div>
           <p>{token ? '点击「加载文章」获取已发布文章列表' : '请输入 GitHub Token 以管理文章'}</p>
         </div>
       ) : (
         <div className={styles.articleList}>
+          {/* 系列文章 */}
+          {seriesList.map((series) => (
+            <div key={series.info.path} className={styles.seriesCard}>
+              <div
+                className={styles.seriesHeader}
+                onClick={() => setExpandedSeries(expandedSeries === series.info.path ? null : series.info.path)}
+              >
+                <div className={styles.seriesHeaderInfo}>
+                  <span className={styles.seriesExpandIcon}>
+                    {expandedSeries === series.info.path ? '▼' : '▶'}
+                  </span>
+                  <h4 className={styles.articleTitle}>📚 {series.info.title}</h4>
+                  <span className={styles.articleCategory}>
+                    {categoryLabels[series.category] || series.category}
+                  </span>
+                  <span className={styles.draftTags}>({series.info.articles.length} 篇)</span>
+                </div>
+                <div className={styles.seriesHeaderActions}>
+                  <span className={styles.articleDate}>{series.info.date}</span>
+                  <button
+                    className={styles.editBtn}
+                    onClick={async (e) => {
+                      e.stopPropagation();
+                      if (!token) {
+                        setStatusMsg({ type: 'error', text: '请先输入 GitHub Token' });
+                        return;
+                      }
+                      try {
+                        const { content, sha } = await fetchFileContent(token, series.info.path);
+                        const body = content.replace(/^---\n[\s\S]*?\n---\n?/, '');
+                        onEditArticle(body, sha, series.info.path);
+                      } catch {
+                        setStatusMsg({ type: 'error', text: '加载系列文件失败' });
+                      }
+                    }}
+                  >
+                    编辑系列
+                  </button>
+                </div>
+              </div>
+
+              {/* 展开的子文章列表 */}
+              {expandedSeries === series.info.path && (
+                <div className={styles.seriesSubList}>
+                  {series.info.articles.map((article, idx) => (
+                    <div key={`${series.info.path}_${idx}`} className={styles.seriesSubItem}>
+                      <div className={styles.articleInfo}>
+                        <span className={styles.seriesSubIndex}>{idx + 1}.</span>
+                        <span className={styles.seriesSubTitle}>{article.title}</span>
+                        {article.date && (
+                          <span className={styles.articleDate}>{article.date}</span>
+                        )}
+                      </div>
+                      <div className={styles.articleActions}>
+                        <button
+                          className={styles.editBtn}
+                          onClick={() => handleEditSeriesArticle(series, article)}
+                        >
+                          编辑
+                        </button>
+                        <button
+                          className={styles.viewBtn}
+                          onClick={() => handleViewSeriesArticle(series, article)}
+                        >
+                          查看
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+
+          {/* 单篇文章 */}
           {filteredArticles.map((article) => (
             <div key={article.path} className={styles.articleCard}>
               <div className={styles.articleInfo}>

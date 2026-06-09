@@ -1349,6 +1349,32 @@ select.formInput {
   box-shadow: none;
 }
 
+/* CDN 批量替换按钮 */
+.cdnBtn {
+  padding: 10px 20px;
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+}
+
+.cdnBtn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4);
+}
+
+.cdnBtn:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
 .filterBar {
   display: flex;
   gap: 12px;
@@ -2132,4 +2158,340 @@ select.formInput {
   gap: 12px;
   justify-content: flex-end;
   margin-top: 20px;
+}
+
+/* ========== 模式切换（单篇/系列） ========== */
+.modeToggle {
+  display: flex;
+  gap: 4px;
+  background: #f1f5f9;
+  border-radius: 12px;
+  padding: 4px;
+  margin-bottom: 20px;
+}
+
+[data-theme='dark'] .modeToggle {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.modeBtn {
+  flex: 1;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+[data-theme='dark'] .modeBtn {
+  color: #94a3b8;
+}
+
+.modeBtnActive {
+  background: white;
+  color: #667eea;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  font-weight: 600;
+}
+
+[data-theme='dark'] .modeBtnActive {
+  background: rgba(102, 126, 234, 0.2);
+  color: #a5b4fc;
+}
+
+.modeBtn:hover:not(.modeBtnActive) {
+  color: #334155;
+  background: rgba(255, 255, 255, 0.5);
+}
+
+[data-theme='dark'] .modeBtn:hover:not(.modeBtnActive) {
+  color: #e2e8f0;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* ========== 系列文章表单 ========== */
+.seriesForm {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.seriesTitleRow {
+  display: flex;
+  gap: 12px;
+}
+
+.seriesInputGroup {
+  display: flex;
+  gap: 0;
+  position: relative;
+}
+
+.seriesInputGroup .formInput {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  border-right: none;
+}
+
+.seriesDropdownBtn {
+  padding: 10px 14px;
+  border: 2px solid #e5e7eb;
+  border-left: none;
+  border-radius: 0 10px 10px 0;
+  background: #f9fafb;
+  color: #64748b;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+[data-theme='dark'] .seriesDropdownBtn {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: #94a3b8;
+}
+
+.seriesDropdownBtn:hover {
+  background: #667eea;
+  color: white;
+  border-color: #667eea;
+}
+
+.seriesDropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 4px;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+  z-index: 100;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+[data-theme='dark'] .seriesDropdown {
+  background: #1e1e3e;
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.seriesDropdownItem {
+  display: block;
+  width: 100%;
+  padding: 10px 14px;
+  border: none;
+  background: transparent;
+  color: #374151;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+[data-theme='dark'] .seriesDropdownItem {
+  color: #e2e8f0;
+}
+
+.seriesDropdownItem:hover {
+  background: rgba(102, 126, 234, 0.08);
+  color: #667eea;
+}
+
+.seriesDropdownMeta {
+  font-size: 12px;
+  color: #94a3b8;
+  margin-left: 8px;
+}
+
+.seriesDropdownNew {
+  border-top: 1px solid #e5e7eb;
+  color: #667eea;
+  font-weight: 500;
+}
+
+[data-theme='dark'] .seriesDropdownNew {
+  border-top-color: rgba(255, 255, 255, 0.1);
+}
+
+.seriesEditNote {
+  padding: 10px 14px;
+  background: rgba(102, 126, 234, 0.08);
+  border: 1px solid rgba(102, 126, 234, 0.2);
+  border-radius: 8px;
+  font-size: 13px;
+  color: #667eea;
+}
+
+[data-theme='dark'] .seriesEditNote {
+  background: rgba(102, 126, 234, 0.12);
+  border-color: rgba(102, 126, 234, 0.3);
+  color: #a5b4fc;
+}
+
+/* ========== 管理页 - 系列文章卡片 ========== */
+.seriesCard {
+  background: white;
+  border: 1px solid #eef2ff;
+  border-radius: 14px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+[data-theme='dark'] .seriesCard {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.seriesCard:hover {
+  border-color: #667eea;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.1);
+}
+
+.seriesHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.2s ease;
+}
+
+.seriesHeader:hover {
+  background: rgba(102, 126, 234, 0.04);
+}
+
+[data-theme='dark'] .seriesHeader:hover {
+  background: rgba(102, 126, 234, 0.08);
+}
+
+.seriesHeaderInfo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
+
+.seriesExpandIcon {
+  font-size: 10px;
+  color: #94a3b8;
+  width: 16px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.seriesHeaderActions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.seriesSubList {
+  border-top: 1px solid #eef2ff;
+  padding: 0;
+}
+
+[data-theme='dark'] .seriesSubList {
+  border-top-color: rgba(255, 255, 255, 0.08);
+}
+
+.seriesSubItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 20px 12px 48px;
+  transition: background 0.2s ease;
+  gap: 12px;
+}
+
+.seriesSubItem:hover {
+  background: rgba(102, 126, 234, 0.04);
+}
+
+[data-theme='dark'] .seriesSubItem:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.seriesSubItem + .seriesSubItem {
+  border-top: 1px solid #f1f5f9;
+}
+
+[data-theme='dark'] .seriesSubItem + .seriesSubItem {
+  border-top-color: rgba(255, 255, 255, 0.05);
+}
+
+.seriesSubIndex {
+  font-size: 13px;
+  color: #94a3b8;
+  font-weight: 500;
+  min-width: 24px;
+  flex-shrink: 0;
+}
+
+.seriesSubTitle {
+  font-size: 14px;
+  color: #374151;
+  font-weight: 500;
+}
+
+[data-theme='dark'] .seriesSubTitle {
+  color: #e2e8f0;
+}
+
+.seriesSubItem .articleActions {
+  flex-shrink: 0;
+}
+
+/* ========== 系列下拉-Token输入 ========== */
+.seriesNoTokenBtn {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.seriesDropdownTokenInput {
+  padding: 12px 14px;
+}
+
+.seriesDropdownItemHint {
+  display: block;
+  font-size: 12px;
+  color: #94a3b8;
+  margin-bottom: 8px;
+}
+
+.seriesTokenInlineInput {
+  width: 100%;
+  padding: 8px 12px;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 13px;
+  outline: none;
+  transition: all 0.3s ease;
+  box-sizing: border-box;
+  background: #f9fafb;
+}
+
+[data-theme='dark'] .seriesTokenInlineInput {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+}
+
+.seriesTokenInlineInput:focus {
+  border-color: #667eea;
+  box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
 }

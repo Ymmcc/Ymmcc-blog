@@ -53,6 +53,30 @@ export default function PublishPage() {
     setActiveTab('write');
   };
 
+  // 从文章管理编辑系列子文章
+  const handleEditSeriesArticle = (
+    seriesPath: string,
+    seriesSha: string,
+    seriesTitle: string,
+    articleTitle: string,
+    articleContent: string
+  ) => {
+    setEditMode({
+      type: 'series-article',
+      sha: seriesSha,
+      path: seriesPath,
+      seriesTitle,
+      articleTitle,
+    });
+    setEditData({
+      ...defaultArticleData,
+      markdownContent: articleContent,
+    });
+    setEditSha(seriesSha);
+    setEditPath(seriesPath);
+    setActiveTab('write');
+  };
+
   // 清除编辑模式
   const handleClearEditMode = () => {
     setEditMode(null);
@@ -110,6 +134,8 @@ export default function PublishPage() {
                 initialPath={editPath}
                 onClearEditMode={handleClearEditMode}
                 onPublishSuccess={handlePublishSuccess}
+                githubToken={githubToken}
+                onGithubTokenChange={setGithubToken}
               />
             )}
 
@@ -122,6 +148,7 @@ export default function PublishPage() {
                 token={githubToken}
                 onTokenChange={setGithubToken}
                 onEditArticle={handleEditArticle}
+                onEditSeriesArticle={handleEditSeriesArticle}
               />
             )}
           </div>

@@ -1,9 +1,12 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import gsap from 'gsap';
 import styles from '../../pages/publish.module.css';
-import { ArticleData, EditMode, defaultArticleData } from './types';
+import { ArticleData, EditMode, ArticleMode, SeriesInfo, defaultArticleData } from './types';
 import { saveDraft } from './storage';
-import { generateMarkdown, getFilePath, upsertFile, uploadImage } from './github-api';
+import {
+  generateMarkdown, generateSeriesMarkdown, getFilePath, upsertFile, uploadImage,
+  fetchFileContent, fetchSeriesList, parseSeriesContent, compressImage, optimizeImageTags
+} from './github-api';
 import RichTextEditor from './RichTextEditor';
 import PublishModal from './PublishModal';
 import PreviewModal from './PreviewModal';
@@ -15,11 +18,14 @@ interface Props {
   initialPath?: string;
   onClearEditMode: () => void;
   onPublishSuccess: () => void;
+  githubToken?: string;
+  onGithubTokenChange?: (token: string) => void;
 }
 
 export default function WriteTab({
   editMode, initialData, initialSha, initialPath,
-  onClearEditMode, onPublishSuccess
+  onClearEditMode, onPublishSuccess,
+  githubToken: externalToken, onGithubTokenChange
 }: Props) {
   const [articleData, setArticleData] = useState<ArticleData>(initialData || defaultArticleData);
   const [showPreview, setShowPreview] = useState(false);
@@ -32,7 +38,21 @@ export default function WriteTab({
   );
   const [editingSha, setEditingSha] = useState(initialSha);
   const [editingPath, setEditingPath] = useState(initialPath);
-  const [githubToken, setGithubToken] = useState('');
+  const githubToken = externalToken || '';
+
+  // 系列文章模式
+  const [articleMode, setArticleMode] = useState<ArticleMode>(
+    editMode?.type === 'series-article' ? 'series' : 'single'
+  );
+  const [seriesTitle, setSeriesTitle] = useState(editMode?.seriesTitle || '');
+  const [articleTitle, setArticleTitle] = useState(editMode?.articleTitle || '');
+  const [availableSeries, setAvailableSeries] = useState<SeriesInfo[]>([]);
+  const [showSeriesDropdown, setShowSeriesDropdown] = useState(false);
+  const [loadingSeries, setLoadingSeries] = useState(false);
+  // 编辑系列子文章时：记录当前编辑的是系列中的哪篇文章
+  const [editingSeriesArticleTitle, setEditingSeriesArticleTitle] = useState<string | undefined>(
+    editMode?.type === 'series-article' ? editMode.articleTitle : undefined
+  );
 
   const containerRef = useRef<HTMLDivElement>(null);
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -52,12 +72,46 @@ export default function WriteTab({
     if (initialPath) setEditingPath(initialPath);
   }, [initialPath]);
 
+  // 当编辑模式为系列子文章时更新系列相关状态
+  useEffect(() => {
+    if (editMode?.type === 'series-article') {
+      setArticleMode('series');
+      setSeriesTitle(editMode.seriesTitle || '');
+      setArticleTitle(editMode.articleTitle || '');
+      setEditingSeriesArticleTitle(editMode.articleTitle);
+    } else if (!editMode) {
+      // 退出编辑时重置系列状态
+      setArticleMode('single');
+      setSeriesTitle('');
+      setArticleTitle('');
+      setEditingSeriesArticleTitle(undefined);
+    }
+  }, [editMode]);
+
+  // 加载系列列表
+  const loadSeriesList = useCallback(() => {
+    if (!githubToken || loadingSeries) return;
+    setLoadingSeries(true);
+    setShowSeriesDropdown(true);
+    fetchSeriesList(githubToken)
+      .then(list => setAvailableSeries(list))
+      .catch(() => {})
+      .finally(() => setLoadingSeries(false));
+  }, [githubToken, loadingSeries]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // 入场动画
   useEffect(() => {
     if (!containerRef.current) return;
     gsap.set(containerRef.current, { y: 30, opacity: 0 });
     gsap.to(containerRef.current, { y: 0, opacity: 1, duration: 0.6, ease: 'power3.out' });
   }, []);
+
+  // 切换到系列模式时自动加载已有系列列表
+  useEffect(() => {
+    if (articleMode === 'series') {
+      loadSeriesList();
+    }
+  }, [articleMode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Ctrl+S 快捷键保存草稿
   useEffect(() => {
@@ -107,11 +161,15 @@ export default function WriteTab({
       const reader = new FileReader();
       return new Promise((resolve, reject) => {
         reader.onload = async (e) => {
-          const base64 = e.target?.result as string;
+          const base64Raw = e.target?.result as string;
+
+          // 先压缩图片（减小 60-80% 体积）
+          setStatusMsg({ type: 'success', text: '正在压缩图片...' });
+          const base64 = await compressImage(base64Raw, 1600, 0.8).catch(() => base64Raw);
 
           // 没有 Token 时，先用 base64 占位，发布时会自动上传替换
           if (!githubToken) {
-            setStatusMsg({ type: 'success', text: '图片已插入，发布时会自动上传到 GitHub' });
+            setStatusMsg({ type: 'success', text: '图片已插入（已压缩），发布时会自动上传到 GitHub' });
             setTimeout(() => setStatusMsg(null), 2000);
             resolve(base64);
             return;
@@ -165,13 +223,17 @@ export default function WriteTab({
 
   // 发布
   const handlePublish = async (token: string) => {
-    if (!articleData.title) {
+    if (articleMode === 'single' && !articleData.title) {
       setPublishError('请输入文章标题');
       return;
     }
+    if (articleMode === 'series') {
+      if (!seriesTitle) { setPublishError('请输入系列标题'); return; }
+      if (!articleTitle) { setPublishError('请输入子文章标题'); return; }
+    }
 
     // 保存 Token 供图片上传使用
-    setGithubToken(token);
+    if (onGithubTokenChange) onGithubTokenChange(token);
     setIsPublishing(true);
     setPublishError(null);
     setStatusMsg(null);
@@ -179,21 +241,78 @@ export default function WriteTab({
     try {
       // 先上传内容中的 base64 图片
       const processedHtml = await uploadInlineImages(articleData.markdownContent, token);
-      const processedData = { ...articleData, markdownContent: processedHtml };
+      // 给所有图片添加懒加载属性，提升页面加载速度
+      const optimizedHtml = optimizeImageTags(processedHtml);
+      const processedData = { ...articleData, markdownContent: optimizedHtml };
 
-      const content = generateMarkdown(processedData);
-      const path = editingPath || getFilePath(articleData.category, articleData.title);
-      await upsertFile(token, path, content, `feat: ${editingSha ? '更新' : '添加'}文章 "${articleData.title}"`, editingSha);
+      if (articleMode === 'series') {
+        // === 系列文章发布 ===
+        const isNewSeries = !editingPath;
+        let existingArticles: { title: string; content: string }[] = [];
+        let shaToUse: string | undefined;
 
-      setStatusMsg({ type: 'success', text: '文章发布成功！GitHub Actions 将自动部署' });
-      setShowPublish(false);
-      setPublishError(null);
-      setArticleData(defaultArticleData);
-      setSavedDraftId(undefined);
-      setEditingSha(undefined);
-      setEditingPath(undefined);
-      onClearEditMode();
-      onPublishSuccess();
+        if (!isNewSeries) {
+          // 已有系列：获取当前内容追加
+          const { content: existingContent, sha } = await fetchFileContent(token, editingPath!);
+          const parsed = parseSeriesContent(existingContent);
+          shaToUse = sha;
+
+          if (editingSeriesArticleTitle) {
+            // 编辑系列中已有的子文章
+            existingArticles = parsed.articles.map(a => {
+              if (a.title === editingSeriesArticleTitle) {
+                return { ...a, content: optimizedHtml };
+              }
+              return { title: a.title, content: a.content };
+            });
+          } else {
+            // 追加新子文章到已有系列
+            existingArticles = parsed.articles.map(a => ({ title: a.title, content: a.content }));
+            existingArticles.push({ title: articleTitle, content: optimizedHtml });
+          }
+        } else {
+          // 新建系列
+          existingArticles.push({ title: articleTitle, content: optimizedHtml });
+        }
+
+        const seriesContent = generateSeriesMarkdown({
+          seriesTitle,
+          tags: articleData.tags,
+          description: articleData.description,
+          articles: existingArticles,
+        });
+        const path = editingPath || getFilePath(articleData.category, seriesTitle);
+        await upsertFile(token, path, seriesContent, `feat: ${shaToUse ? '更新' : '添加'}系列文章 "${seriesTitle}"`, shaToUse);
+
+        setStatusMsg({ type: 'success', text: '系列文章发布成功！GitHub Actions 将自动部署' });
+        setShowPublish(false);
+        setPublishError(null);
+        // 重置
+        setArticleData(defaultArticleData);
+        setSeriesTitle('');
+        setArticleTitle('');
+        setEditingSeriesArticleTitle(undefined);
+        setSavedDraftId(undefined);
+        setEditingSha(undefined);
+        setEditingPath(undefined);
+        onClearEditMode();
+        onPublishSuccess();
+      } else {
+        // === 单篇文章发布（原有逻辑）===
+        const content = generateMarkdown(processedData);
+        const path = editingPath || getFilePath(articleData.category, articleData.title);
+        await upsertFile(token, path, content, `feat: ${editingSha ? '更新' : '添加'}文章 "${articleData.title}"`, editingSha);
+
+        setStatusMsg({ type: 'success', text: '文章发布成功！GitHub Actions 将自动部署' });
+        setShowPublish(false);
+        setPublishError(null);
+        setArticleData(defaultArticleData);
+        setSavedDraftId(undefined);
+        setEditingSha(undefined);
+        setEditingPath(undefined);
+        onClearEditMode();
+        onPublishSuccess();
+      }
     } catch (err) {
       const msg = err instanceof Error ? err.message : '发布失败';
       setPublishError(msg);
@@ -223,54 +342,231 @@ export default function WriteTab({
         </div>
       )}
 
+      {/* 模式切换 */}
+      <div className={styles.modeToggle}>
+        <button
+          className={`${styles.modeBtn} ${articleMode === 'single' ? styles.modeBtnActive : ''}`}
+          onClick={() => {
+            setArticleMode('single');
+            if (!editMode) onClearEditMode();
+          }}
+        >
+          📄 单篇文章
+        </button>
+        <button
+          className={`${styles.modeBtn} ${articleMode === 'series' ? styles.modeBtnActive : ''}`}
+          onClick={() => setArticleMode('series')}
+        >
+          📚 系列文章
+        </button>
+      </div>
+
       {/* 元信息表单 */}
       <div className={styles.card}>
         <h3 className={styles.cardTitle}><span>📝</span> 文章信息</h3>
-        <div className={styles.formGrid}>
-          <div className={styles.formGroup}>
-            <label className={styles.formLabel}>标题</label>
-            <input
-              type="text"
-              value={articleData.title}
-              onChange={e => handleChange({ title: e.target.value })}
-              placeholder="请输入文章标题"
-              className={styles.formInput}
-            />
+        {articleMode === 'single' ? (
+          <div className={styles.formGrid}>
+            <div className={styles.formGroup}>
+              <label className={styles.formLabel}>标题</label>
+              <input
+                type="text"
+                value={articleData.title}
+                onChange={e => handleChange({ title: e.target.value })}
+                placeholder="请输入文章标题"
+                className={styles.formInput}
+              />
+            </div>
+            <div className={styles.formGroup}>
+              <label className={styles.formLabel}>分类</label>
+              <select
+                value={articleData.category}
+                onChange={e => handleChange({ category: e.target.value })}
+                className={styles.formInput}
+              >
+                <option value="frontend">前端开发</option>
+                <option value="backend">后端开发</option>
+                <option value="algorithm">算法学习</option>
+                <option value="projects">项目作品</option>
+              </select>
+            </div>
+            <div className={styles.formGroup}>
+              <label className={styles.formLabel}>标签（逗号分隔）</label>
+              <input
+                type="text"
+                value={articleData.tags}
+                onChange={e => handleChange({ tags: e.target.value })}
+                placeholder="例如：React, 前端, Hooks"
+                className={styles.formInput}
+              />
+            </div>
+            <div className={styles.formGroup}>
+              <label className={styles.formLabel}>摘要</label>
+              <textarea
+                value={articleData.description}
+                onChange={e => handleChange({ description: e.target.value })}
+                placeholder="简短描述文章内容..."
+                rows={2}
+                className={`${styles.formInput} ${styles.formTextarea}`}
+              />
+            </div>
           </div>
-          <div className={styles.formGroup}>
-            <label className={styles.formLabel}>分类</label>
-            <select
-              value={articleData.category}
-              onChange={e => handleChange({ category: e.target.value })}
-              className={styles.formInput}
-            >
-              <option value="frontend">前端开发</option>
-              <option value="backend">后端开发</option>
-              <option value="algorithm">算法学习</option>
-              <option value="projects">项目作品</option>
-            </select>
+        ) : (
+          <div className={styles.seriesForm}>
+            {/* 系列标题 + 选择器 */}
+            <div className={styles.seriesTitleRow}>
+              <div className={styles.formGroup} style={{ flex: 1 }}>
+                <label className={styles.formLabel}>系列标题</label>
+                <div className={styles.seriesInputGroup}>
+                  <input
+                    type="text"
+                    value={seriesTitle}
+                    onChange={e => {
+                      setSeriesTitle(e.target.value);
+                      setShowSeriesDropdown(false);
+                    }}
+                    placeholder="例如：数据库"
+                    className={styles.formInput}
+                    onFocus={() => githubToken && (setShowSeriesDropdown(true), availableSeries.length === 0 && loadSeriesList())}
+                  />
+                  {githubToken ? (
+                    <button
+                      type="button"
+                      className={styles.seriesDropdownBtn}
+                      onClick={() => {
+                        if (availableSeries.length === 0) loadSeriesList();
+                        setShowSeriesDropdown(!showSeriesDropdown);
+                      }}
+                      title="选择已有系列"
+                    >
+                      ▼
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      className={`${styles.seriesDropdownBtn} ${styles.seriesNoTokenBtn}`}
+                      onClick={() => setShowSeriesDropdown(!showSeriesDropdown)}
+                      title="需要先设置 GitHub Token"
+                    >
+                      ▼
+                    </button>
+                  )}
+                </div>
+                {/* 系列下拉列表 */}
+                {showSeriesDropdown && (
+                  <div className={styles.seriesDropdown}>
+                    {!githubToken ? (
+                      <div className={styles.seriesDropdownTokenInput}>
+                        <span className={styles.seriesDropdownItemHint}>需要 GitHub Token 加载已有系列</span>
+                        <input
+                          type="password"
+                          placeholder="输入 GitHub Token..."
+                          className={styles.seriesTokenInlineInput}
+                          onChange={e => onGithubTokenChange?.(e.target.value)}
+                        />
+                      </div>
+                    ) : loadingSeries ? (
+                      <div className={styles.seriesDropdownItem}>加载中...</div>
+                    ) : availableSeries.length === 0 ? (
+                      <div className={styles.seriesDropdownItem}>暂无系列</div>
+                    ) : (
+                      availableSeries.map(s => (
+                        <button
+                          key={s.path}
+                          className={styles.seriesDropdownItem}
+                          onClick={() => {
+                            setSeriesTitle(s.title);
+                            setEditingSha(s.sha);
+                            setEditingPath(s.path);
+                            setEditingSeriesArticleTitle(undefined);
+                            setShowSeriesDropdown(false);
+                            // 同步分类
+                            const catMatch = s.path.match(/^docs\/([^/]+)\//);
+                            if (catMatch) handleChange({ category: catMatch[1] });
+                          }}
+                        >
+                          📚 {s.title}
+                          <span className={styles.seriesDropdownMeta}>
+                            ({s.articles.length} 篇)
+                          </span>
+                        </button>
+                      ))
+                    )}
+                    <button
+                      className={`${styles.seriesDropdownItem} ${styles.seriesDropdownNew}`}
+                      onClick={() => {
+                        setSeriesTitle('');
+                        setEditingSha(undefined);
+                        setEditingPath(undefined);
+                        setShowSeriesDropdown(false);
+                      }}
+                    >
+                      ➕ 新建系列
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* 子文章标题 */}
+            <div className={styles.formGroup}>
+              <label className={styles.formLabel}>文章标题</label>
+              <input
+                type="text"
+                value={articleTitle}
+                onChange={e => setArticleTitle(e.target.value)}
+                placeholder="例如：SQL语句"
+                className={styles.formInput}
+              />
+            </div>
+
+            {/* 分类、标签、摘要（系列共用） */}
+            <div className={styles.formGrid}>
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>分类</label>
+                <select
+                  value={articleData.category}
+                  onChange={e => handleChange({ category: e.target.value })}
+                  className={styles.formInput}
+                >
+                  <option value="frontend">前端开发</option>
+                  <option value="backend">后端开发</option>
+                  <option value="algorithm">算法学习</option>
+                  <option value="projects">项目作品</option>
+                </select>
+              </div>
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>标签（逗号分隔）</label>
+                <input
+                  type="text"
+                  value={articleData.tags}
+                  onChange={e => handleChange({ tags: e.target.value })}
+                  placeholder="例如：数据库, SQL"
+                  className={styles.formInput}
+                />
+              </div>
+            </div>
+            <div className={styles.formGroup}>
+              <label className={styles.formLabel}>系列摘要</label>
+              <textarea
+                value={articleData.description}
+                onChange={e => handleChange({ description: e.target.value })}
+                placeholder="简短描述该系列..."
+                rows={2}
+                className={`${styles.formInput} ${styles.formTextarea}`}
+              />
+            </div>
+            {editingSeriesArticleTitle && (
+              <div className={styles.seriesEditNote}>
+                ✏️ 正在编辑系列「{seriesTitle}」中的文章「{editingSeriesArticleTitle}」
+              </div>
+            )}
+            {editingPath && !editingSeriesArticleTitle && (
+              <div className={styles.seriesEditNote}>
+                📚 正在追加文章到系列「{seriesTitle}」
+              </div>
+            )}
           </div>
-          <div className={styles.formGroup}>
-            <label className={styles.formLabel}>标签（逗号分隔）</label>
-            <input
-              type="text"
-              value={articleData.tags}
-              onChange={e => handleChange({ tags: e.target.value })}
-              placeholder="例如：React, 前端, Hooks"
-              className={styles.formInput}
-            />
-          </div>
-          <div className={styles.formGroup}>
-            <label className={styles.formLabel}>摘要</label>
-            <textarea
-              value={articleData.description}
-              onChange={e => handleChange({ description: e.target.value })}
-              placeholder="简短描述文章内容..."
-              rows={2}
-              className={`${styles.formInput} ${styles.formTextarea}`}
-            />
-          </div>
-        </div>
+        )}
       </div>
 
       {/* Markdown 编辑器 */}
