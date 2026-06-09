@@ -88,15 +88,34 @@
       return;
     }
 
-    // 查找当前激活的文章标题 - 使用更精确的选择器
-    // Docusaurus 结构：menu__list-item > menu__link menu__link--active
+    // 查找当前激活的文章标题
+    // Docusaurus 结构：menu__link--active 是当前页面的链接
+    // 但父级菜单也会有 menu__link--active 类
+    // 我们需要找到最深层级的、不是 sublist 的激活链接
     var activeLinks = document.querySelectorAll('.theme-doc-sidebar-menu .menu__link--active');
     if (!activeLinks || activeLinks.length === 0) {
       return;
     }
 
-    // 取最后一个激活的链接（最深层级的）
-    var articleTitle = activeLinks[activeLinks.length - 1];
+    // 找到最深层级的激活链接（不是 sublist）
+    var articleTitle = null;
+    for (var i = activeLinks.length - 1; i >= 0; i--) {
+      var link = activeLinks[i];
+      // 检查是否是 sublist（父级菜单）
+      if (!link.classList.contains('menu__link--sublist')) {
+        articleTitle = link;
+        break;
+      }
+    }
+
+    // 如果找不到非 sublist 的激活链接，尝试使用最后一个
+    if (!articleTitle) {
+      articleTitle = activeLinks[activeLinks.length - 1];
+    }
+
+    if (!articleTitle) {
+      return;
+    }
 
     // 查找包含该标题的 li 元素
     var articleLi = articleTitle.closest('li.menu__list-item');
