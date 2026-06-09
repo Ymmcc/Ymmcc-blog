@@ -1,10 +1,15 @@
 ---
-title: 三层模式与二级映射
+title: 数据库
 sidebar_position: 1
 date: 2026-06-08
 tags: [数据库, MySQL, DBMS]
 description: 数据库系统的三级模式结构和二级映射机制
+series: true
 ---
+
+<details open>
+
+<summary><strong>📖 三层模式与二级映射</strong></summary>
 
 ## 一、三层模式
 
@@ -49,3 +54,5 @@ description: 数据库系统的三级模式结构和二级映射机制
 ![屏幕截图 2026-06-08 225128](https://cdn.jsdelivr.net/gh/Ymmcc/Ymmcc-blog@main/static/img/uploads/1780930857378-2.png)
 
 **概括：** 三层模式（外、概念、内）从三个不同角度描绘数据，将用户逻辑、全局逻辑和物理存储彻底分开；二级映射则在它们之间搭建桥梁，使得修改内层或中间层时，不影响上层的应用，从而实现了数据独立性。
+
+</details>
