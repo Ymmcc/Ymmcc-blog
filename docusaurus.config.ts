@@ -7,6 +7,17 @@ const config: Config = {
   tagline: '记录学习，分享知识，持续成长',
   favicon: 'img/favicon.ico',
 
+  // 头部标签
+  headTags: [
+    {
+      tagName: 'script',
+      attributes: {
+        src: '/Ymmcc-blog/js/sidebar-toc.js',
+        defer: 'true',
+      },
+    },
+  ],
+
   future: {
     v4: true,
   },
