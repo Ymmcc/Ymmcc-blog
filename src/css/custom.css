@@ -1000,6 +1000,12 @@ h1, h2, h3, h4, h5, h6 {
   padding-left: 12px;
 }
 
+/* 当父元素隐藏时，TOC 也隐藏 */
+.menu__list[style*="display: none"] .sidebar-toc,
+.menu__list[aria-hidden="true"] .sidebar-toc {
+  display: none !important;
+}
+
 .sidebar-toc-item {
   padding: 4px 0;
   font-size: 0.9rem;
@@ -1053,6 +1059,11 @@ h1, h2, h3, h4, h5, h6 {
   font-size: 0.7rem;
   transition: transform 0.2s ease;
   cursor: pointer;
+  color: var(--text-muted);
+}
+
+.sidebar-toc-arrow:hover {
+  color: var(--ifm-color-primary);
 }
 
 /* ==================== GSAP 动画类 ==================== */
