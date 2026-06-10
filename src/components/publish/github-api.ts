@@ -310,12 +310,64 @@ ${markdownBody}
   return md;
 }
 
+// 简单拼音映射表（常用字首字母缩写）
+// 用于纯中文标题时生成有意义的 slug，避免全部变成 post-xxx
+const PINYIN_MAP: Record<string, string> = {
+  '并': 'bing', '发': 'fa', '事': 'shi', '务': 'wu', '隔': 'ge', '离': 'li',
+  '三': 'san', '层': 'ceng', '模': 'mo', '式': 'shi', '与': 'yu', '二': 'er',
+  '级': 'ji', '映': 'ying', '射': 'she', '完': 'wan', '整': 'zheng', '性': 'xing',
+  '规': 'gui', '则': 'ze', '数': 'shu', '据': 'ju', '库': 'ku', '基': 'ji',
+  '础': 'chu', '结': 'jie', '构': 'gou', '算': 'suan', '法': 'fa',
+  '论': 'lun', '文': 'wen', '学': 'xue', '物': 'wu', '理': 'li', '化': 'hua',
+  '生': 'sheng', '入': 'ru', '门': 'men', '指': 'zhi', '南': 'nan',
+  '简': 'jian', '介': 'jie', '总': 'zong', '实': 'shi', '例': 'li',
+  '概': 'gai', '念': 'nian', '具': 'ju', '体': 'ti', '场': 'chang', '景': 'jing',
+  '描': 'miao', '述': 'shu', '于': 'yu', '语': 'yu', '言': 'yan', '句': 'ju',
+  '相': 'xiang', '关': 'guan', '知': 'zhi', '识': 'shi',
+  '创': 'chuang', '建': 'jian', '新': 'xin', '增': 'zeng', '删': 'shan',
+  '改': 'gai', '查': 'cha', '添': 'tian', '加': 'jia', '编': 'bian', '辑': 'ji',
+  '优': 'you', '化': 'hua', '提': 'ti', '升': 'sheng', '加': 'jia', '速': 'su',
+  '第': 'di', '一': 'yi', '篇': 'pian', '章': 'zhang', '节': 'jie',
+  '使': 'shi', '用': 'yong', '教': 'jiao', '程': 'cheng', '入': 'ru', '门': 'men',
+  '初': 'chu', '中': 'zhong', '高': 'gao', '阶': 'jie', '技': 'ji', '巧': 'qiao',
+  '代': 'dai', '码': 'ma', '项': 'xiang', '目': 'mu', '框': 'kuang', '架': 'jia',
+  '前': 'qian', '端': 'duan', '后': 'hou', '后': 'hou', '服': 'fu',
+  '页': 'ye', '面': 'mian', '组': 'zu', '件': 'jian', '路': 'lu', '由': 'you',
+  '部': 'bu', '署': 'shu', '部': 'bu', '测': 'ce', '试': 'shi', '调': 'tiao',
+  '试': 'shi', '错': 'cuo', '误': 'wu', '异': 'yi', '常': 'chang',
+  '处': 'chu', '安': 'an', '全': 'quan', '性': 'xing', '权': 'quan', '限': 'xian',
+  '验': 'yan', '证': 'zheng', '登': 'deng', '录': 'lu', '注': 'zhu', '册': 'ce',
+  '用': 'yong', '户': 'hu', '管': 'guan', '配': 'pei', '置': 'zhi',
+};
+
+// 将标题转换为纯英文 slug
+// 保留字母数字，中文转简单拼音，其余转为连字符
+export function toSlug(title: string): string {
+  let slug = title.toLowerCase();
+
+  // 逐字符处理：中文转拼音，非中文保留
+  let result = '';
+  for (const char of slug) {
+    if (/[a-z0-9]/.test(char)) {
+      result += char;
+    } else if (PINYIN_MAP[char]) {
+      result += PINYIN_MAP[char];
+    }
+    // 其他字符（空格、标点等）忽略，后面用连字符统一替换
+  }
+
+  // 将连续的非字母数字替换为连字符
+  result = result.replace(/[^a-z0-9]+/g, '-');
+  // 去掉首尾连字符
+  result = result.replace(/(^-|-$)/g, '');
+
+  // 如果结果为空，用简短时间戳作为后备
+  return result || `post-${Date.now().toString(36)}`;
+}
+
 // 根据分类和标题生成文件路径
 export function getFilePath(category: string, title: string): string {
-  const slug = title
-    .toLowerCase()
-    .replace(/[^a-z0-9一-龥]+/g, '-')
-    .replace(/(^-|-$)/g, '');
+  const slug = toSlug(title);
 
   switch (category) {
     case 'frontend': return `docs/frontend/${slug}.md`;
@@ -402,10 +454,7 @@ ${markdownBody}
 
 // 根据已有系列文章路径和新建文章标题，生成同目录下的文件路径
 export function getPerFileSeriesPath(existingArticlePath: string, newArticleTitle: string): string {
-  const slug = newArticleTitle
-    .toLowerCase()
-    .replace(/[^a-z0-9一-龥]+/g, '-')
-    .replace(/(^-|-$)/g, '');
+  const slug = toSlug(newArticleTitle);
   const dir = existingArticlePath.substring(0, existingArticlePath.lastIndexOf('/'));
   return `${dir}/${slug}.md`;
 }
