@@ -1,6 +1,6 @@
 ---
 title: 三层模式与二级映射
-sidebar_position: 1
+sidebar_position: 20260608
 date: 2026-06-08
 tags: [数据库, MySQL, DBMS]
 description: 数据库系统的三级模式结构和二级映射机制

@@ -359,6 +359,7 @@ ${body.trim()}
 
 // 生成独立文件系列文章的 Markdown（非 <details> 格式）
 // 每个文章是一个独立的 .md 文件，通过 series: <系列名> 关联
+// sidebar_position 使用日期数字（如 20260610），实现按发布时间排序
 export function generatePerFileSeriesMarkdown(
   data: {
     seriesTitle: string;
@@ -370,13 +371,14 @@ export function generatePerFileSeriesMarkdown(
 ): string {
   const date = new Date().toISOString().split('T')[0];
   const tagsArray = data.tags.split(',').map(t => t.trim()).filter(Boolean);
+  const sidebarPos = parseInt(date.replace(/-/g, ''), 10);
 
   // 将富文本 HTML 转换为 Markdown
   const markdownBody = turndownService.turndown(data.markdownContent);
 
   return `---
 title: ${data.title}
-sidebar_position: 1
+sidebar_position: ${sidebarPos}
 date: ${date}
 tags: [${tagsArray.join(', ')}]
 description: ${data.description}
