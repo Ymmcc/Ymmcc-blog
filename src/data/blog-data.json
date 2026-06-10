@@ -1,6 +1,6 @@
 {
   "stats": {
-    "notes": 5,
+    "notes": 4,
     "codeSnippets": 10,
     "projects": 0
   },
@@ -11,15 +11,6 @@
       "link": "/docs/frontend/react-hooks",
       "tag": "前端",
       "icon": "⚛️",
-      "date": null,
-      "sidebar_position": 2
-    },
-    {
-      "title": "三种完整性规则",
-      "description": "数据库的实体完整性、参照完整性和用户定义完整性三大约束规则 ## 一、基本概念 ## 二、具体实例",
-      "link": "/docs/backend/database/integrity-rules",
-      "tag": "数据库",
-      "icon": "🐍",
       "date": null,
       "sidebar_position": 2
     },
@@ -71,10 +62,6 @@
         {
           "name": "三层模式与二级映射",
           "link": "/docs/backend/database/three-level-schema"
-        },
-        {
-          "name": "三种完整性规则",
-          "link": "/docs/backend/database/integrity-rules"
         }
       ]
     },

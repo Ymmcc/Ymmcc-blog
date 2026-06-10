@@ -19,6 +19,8 @@ export interface SeriesArticle {
   title: string;
   date: string;
   content: string;
+  filePath?: string;   // 独立文件系列的文章文件路径
+  fileSha?: string;    // 独立文件系列的文章文件 SHA
 }
 
 // 系列信息

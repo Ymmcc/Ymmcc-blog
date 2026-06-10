@@ -4,6 +4,7 @@ sidebar_position: 1
 date: 2026-06-08
 tags: [数据库, MySQL, DBMS]
 description: 数据库系统的三级模式结构和二级映射机制
+series: 数据库
 ---
 
 ![屏幕截图 2026-06-08 215217](https://cdn.jsdelivr.net/gh/Ymmcc/Ymmcc-blog@main/static/img/uploads/1780930850272-0.png)

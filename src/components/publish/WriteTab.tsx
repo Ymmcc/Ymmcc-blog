@@ -4,8 +4,10 @@ import styles from '../../pages/publish.module.css';
 import { ArticleData, EditMode, ArticleMode, SeriesInfo, defaultArticleData } from './types';
 import { saveDraft } from './storage';
 import {
-  generateMarkdown, generateSeriesMarkdown, getFilePath, upsertFile, uploadImage,
-  fetchFileContent, fetchSeriesList, parseSeriesContent, compressImage, optimizeImageTags
+  generateMarkdown, generateSeriesMarkdown, generatePerFileSeriesMarkdown,
+  getFilePath, getPerFileSeriesPath, upsertFile, uploadImage,
+  fetchFileContent, fetchSeriesList, parseSeriesContent, compressImage, optimizeImageTags,
+  isOldSeriesFormat
 } from './github-api';
 import RichTextEditor from './RichTextEditor';
 import PublishModal from './PublishModal';
@@ -268,42 +270,60 @@ export default function WriteTab({
 
       if (articleMode === 'series') {
         // === 系列文章发布 ===
-        const isNewSeries = !editingPath;
-        let existingArticles: { title: string; content: string }[] = [];
-        let shaToUse: string | undefined;
+        const isEditingExisting = !!(editingPath && editingSeriesArticleTitle);
 
-        if (!isNewSeries) {
-          // 已有系列：获取当前内容追加
+        if (isEditingExisting) {
+          // 编辑已有文章（新格式 per-file）
+          const content = generatePerFileSeriesMarkdown({
+            seriesTitle,
+            title: articleTitle,
+            tags: articleData.tags,
+            description: articleData.description,
+            markdownContent: optimizedHtml,
+          });
+          await upsertFile(token, editingPath!, content, `feat: 更新系列文章 "${seriesTitle}" - ${articleTitle}`, editingSha);
+        } else if (editingPath && !editingSeriesArticleTitle) {
+          // 已有系列，追加新文章（判断格式）
           const { content: existingContent, sha } = await fetchFileContent(token, editingPath!);
-          const parsed = parseSeriesContent(existingContent);
-          shaToUse = sha;
 
-          if (editingSeriesArticleTitle) {
-            // 编辑系列中已有的子文章
-            existingArticles = parsed.articles.map(a => {
-              if (a.title === editingSeriesArticleTitle) {
-                return { ...a, content: optimizedHtml };
-              }
-              return { title: a.title, content: a.content };
-            });
-          } else {
-            // 追加新子文章到已有系列
-            existingArticles = parsed.articles.map(a => ({ title: a.title, content: a.content }));
+          if (isOldSeriesFormat(existingContent)) {
+            // 旧格式 series: true + <details> — 追加到单文件
+            const parsed = parseSeriesContent(existingContent);
+            const existingArticles = parsed.articles.map(a => ({ title: a.title, content: a.content }));
             existingArticles.push({ title: articleTitle, content: optimizedHtml });
+
+            const seriesContent = generateSeriesMarkdown({
+              seriesTitle,
+              tags: articleData.tags,
+              description: articleData.description,
+              articles: existingArticles,
+            });
+            await upsertFile(token, editingPath!, seriesContent, `feat: 更新系列文章 "${seriesTitle}"`, sha);
+          } else {
+            // 新格式：创建独立文件
+            const newPath = getPerFileSeriesPath(editingPath, articleTitle);
+            const content = generatePerFileSeriesMarkdown({
+              seriesTitle,
+              title: articleTitle,
+              tags: articleData.tags,
+              description: articleData.description,
+              markdownContent: optimizedHtml,
+            });
+            await upsertFile(token, newPath, content, `feat: 添加系列文章 "${seriesTitle}" - ${articleTitle}`);
           }
         } else {
-          // 新建系列
-          existingArticles.push({ title: articleTitle, content: optimizedHtml });
+          // 新建系列（新格式：独立文件）
+          const processedData = { ...articleData, markdownContent: optimizedHtml, title: articleTitle };
+          const content = generatePerFileSeriesMarkdown({
+            seriesTitle,
+            title: articleTitle,
+            tags: processedData.tags,
+            description: processedData.description,
+            markdownContent: optimizedHtml,
+          });
+          const path = getFilePath(articleData.category, articleTitle);
+          await upsertFile(token, path, content, `feat: 添加系列文章 "${seriesTitle}" - ${articleTitle}`);
         }
-
-        const seriesContent = generateSeriesMarkdown({
-          seriesTitle,
-          tags: articleData.tags,
-          description: articleData.description,
-          articles: existingArticles,
-        });
-        const path = editingPath || getFilePath(articleData.category, seriesTitle);
-        await upsertFile(token, path, seriesContent, `feat: ${shaToUse ? '更新' : '添加'}系列文章 "${seriesTitle}"`, shaToUse);
 
         setStatusMsg({ type: 'success', text: '系列文章发布成功！GitHub Actions 将自动部署' });
         setShowPublish(false);

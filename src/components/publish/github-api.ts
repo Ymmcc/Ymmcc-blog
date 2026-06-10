@@ -41,10 +41,19 @@ export function parseFrontmatter(content: string): ArticleMeta {
 }
 
 // 判断是否为系列文章
-export function isSeriesContent(content: string): boolean {
+// 返回系列名称（如"数据库"）或 false
+export function isSeriesContent(content: string): string | false {
   const match = content.match(/^---\n([\s\S]*?)\n---/);
   if (!match) return false;
-  return match[1].includes('series: true');
+  const seriesMatch = match[1].match(/^series:\s*(.+)$/m);
+  if (!seriesMatch) return false;
+  const val = seriesMatch[1].replace(/^["']|["']$/g, '').trim();
+  return val || false;
+}
+
+// 判断是否为旧格式系列文章（series: true + <details>）
+export function isOldSeriesFormat(content: string): boolean {
+  return isSeriesContent(content) === 'true' && content.includes('<details');
 }
 
 // 解析系列文章内容
@@ -348,6 +357,46 @@ ${body.trim()}
   return md;
 }
 
+// 生成独立文件系列文章的 Markdown（非 <details> 格式）
+// 每个文章是一个独立的 .md 文件，通过 series: <系列名> 关联
+export function generatePerFileSeriesMarkdown(
+  data: {
+    seriesTitle: string;
+    title: string;
+    tags: string;
+    description: string;
+    markdownContent: string;
+  }
+): string {
+  const date = new Date().toISOString().split('T')[0];
+  const tagsArray = data.tags.split(',').map(t => t.trim()).filter(Boolean);
+
+  // 将富文本 HTML 转换为 Markdown
+  const markdownBody = turndownService.turndown(data.markdownContent);
+
+  return `---
+title: ${data.title}
+sidebar_position: 1
+date: ${date}
+tags: [${tagsArray.join(', ')}]
+description: ${data.description}
+series: ${data.seriesTitle}
+---
+
+${markdownBody}
+`;
+}
+
+// 根据已有系列文章路径和新建文章标题，生成同目录下的文件路径
+export function getPerFileSeriesPath(existingArticlePath: string, newArticleTitle: string): string {
+  const slug = newArticleTitle
+    .toLowerCase()
+    .replace(/[^a-z0-9一-龥]+/g, '-')
+    .replace(/(^-|-$)/g, '');
+  const dir = existingArticlePath.substring(0, existingArticlePath.lastIndexOf('/'));
+  return `${dir}/${slug}.md`;
+}
+
 /*** 系列列表缓存 ***/
 
 // 简单的哈希函数用于缓存 key（非安全用途）
@@ -404,6 +453,9 @@ export function clearSeriesCache() {
 
 // 获取所有系列文章（带缓存）
 // cache: true（默认）使用 localStorage 缓存，cache: false 强制从 GitHub 重新拉取
+// 支持两种格式：
+//   1. 旧格式：单文件 series: true + <details> 块
+//   2. 新格式：每个文章独立文件，frontmatter 中有 series: <系列名>
 export async function fetchSeriesList(token: string, cache = true): Promise<SeriesInfo[]> {
   // 检查缓存
   if (cache) {
@@ -413,25 +465,84 @@ export async function fetchSeriesList(token: string, cache = true): Promise<Seri
 
   const files = await fetchFileList(token);
   const seriesList: SeriesInfo[] = [];
+  // 用于按系列名称聚合独立文件系列
+  const perFileSeriesMap = new Map<string, SeriesInfo>();
 
   for (const file of files) {
     try {
       const { content } = await fetchFileContent(token, file.path);
-      if (isSeriesContent(content)) {
+      const seriesVal = isSeriesContent(content);
+
+      if (!seriesVal) continue;
+
+      if (seriesVal === 'true' && content.includes('<details')) {
+        // 旧格式：series: true + <details>
         const parsed = parseSeriesContent(content);
         seriesList.push({
           title: parsed.seriesTitle,
           path: file.path,
           sha: file.sha,
-          articles: parsed.articles,
+          articles: parsed.articles.map((a, i) => ({
+            ...a,
+            filePath: file.path,
+            fileSha: file.sha,
+          })),
           date: parsed.articles.length > 0 ? parsed.articles[parsed.articles.length - 1].date : '',
           tags: parsed.tags,
           description: parsed.description,
         });
+      } else if (seriesVal !== 'true') {
+        // 新格式：series: <名称> — 每个文章是独立文件
+        const meta = parseFrontmatter(content);
+        if (!meta.title) continue;
+
+        // 提取正文（去掉 frontmatter）
+        const body = content.replace(/^---\n[\s\S]*?\n---\n?/, '');
+
+        if (!perFileSeriesMap.has(seriesVal)) {
+          perFileSeriesMap.set(seriesVal, {
+            title: seriesVal,
+            path: '',
+            sha: '',
+            articles: [],
+            date: '',
+            tags: [],
+            description: '',
+          });
+        }
+
+        const series = perFileSeriesMap.get(seriesVal)!;
+        series.articles.push({
+          id: `article_${series.articles.length}`,
+          title: meta.title,
+          date: meta.date || '',
+          content: body,
+          filePath: file.path,
+          fileSha: file.sha,
+        });
+
+        // 合并标签和描述
+        series.tags = [...new Set([...series.tags, ...meta.tags])];
+        if (meta.description && !series.description) {
+          series.description = meta.description;
+        }
+        if (!series.date || (meta.date && meta.date > series.date)) {
+          series.date = meta.date;
+        }
       }
     } catch {
       // 跳过无法读取的文件
     }
+  }
+
+  // 将 per-file 系列加入结果，path/sha 设为第一篇
+  for (const [, s] of perFileSeriesMap) {
+    const first = s.articles[0];
+    if (first) {
+      s.path = first.filePath || '';
+      s.sha = first.fileSha || '';
+    }
+    seriesList.push(s);
   }
 
   // 保存到缓存

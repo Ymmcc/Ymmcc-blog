@@ -136,11 +136,19 @@ export default function ManageTab({ token, onTokenChange, onEditArticle, onEditS
   };
 
   // 编辑系列文章中的子文章
-  const handleEditSeriesArticle = async (series: SeriesItem, article: { title: string; content: string }) => {
+  const handleEditSeriesArticle = async (series: SeriesItem, article: { title: string; content: string; filePath?: string; fileSha?: string }) => {
     if (!token) {
       setStatusMsg({ type: 'error', text: '请先输入 GitHub Token' });
       return;
     }
+
+    // 新格式：每个文章是独立文件，直接用文件路径
+    if (article.filePath && article.fileSha) {
+      onEditSeriesArticle?.(article.filePath, article.fileSha, series.info.title, article.title, article.content);
+      return;
+    }
+
+    // 旧格式：从系列文件中解析子文章
     try {
       const { content: fullContent } = await fetchFileContent(token, series.info.path);
       const parsed = parseSeriesContent(fullContent);
