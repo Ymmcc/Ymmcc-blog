@@ -1,6 +1,6 @@
 {
   "stats": {
-    "notes": 5,
+    "notes": 6,
     "codeSnippets": 10,
     "projects": 0
   },
@@ -11,6 +11,15 @@
       "link": "/docs/frontend/react-hooks",
       "tag": "前端",
       "icon": "⚛️",
+      "date": null,
+      "sidebar_position": 2
+    },
+    {
+      "title": "并发与事务隔离",
+      "description": "MySQL 数据库事务隔离级别与并发问题 ## 一、并发带来的问题 ## 二、事务隔离级别 ## 三、各事务隔离级别优缺点以及选择",
+      "link": "/docs/backend/database/并发与事务隔离",
+      "tag": "数据库",
+      "icon": "🐍",
       "date": null,
       "sidebar_position": 2
     },
@@ -75,6 +84,10 @@
         {
           "name": "三种完整性规则",
           "link": "/docs/backend/database/integrity-rules"
+        },
+        {
+          "name": "并发与事务隔离",
+          "link": "/docs/backend/database/%E5%B9%B6%E5%8F%91%E4%B8%8E%E4%BA%8B%E5%8A%A1%E9%9A%94%E7%A6%BB"
         }
       ]
     },

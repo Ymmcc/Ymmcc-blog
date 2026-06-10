@@ -12,6 +12,17 @@ const turndownService = new TurndownService({
   bulletListMarker: '-',
 });
 
+// 自定义标题转换规则：去掉标题中的加粗标记
+// Docusaurus TOC 中标题有 **bold** 会导致显示异常（如"1."代替完整标题）
+turndownService.addRule('headingBold', {
+  filter: ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'],
+  replacement: (content, node) => {
+    const level = Number(node.nodeName.charAt(1));
+    const cleanContent = content.replace(/\*\*/g, '').trim();
+    return `\n${'#'.repeat(level)} ${cleanContent}\n\n`;
+  },
+});
+
 // 自定义代码块转换规则（保留语言标识）
 turndownService.addRule('codeBlock', {
   filter: (node) => {
