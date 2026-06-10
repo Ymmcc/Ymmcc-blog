@@ -52,13 +52,24 @@ export default function ManageTab({ token, onTokenChange, onEditArticle, onEditS
       const files = await fetchFileList(token);
       const articleItems: ArticleItem[] = [];
       const seriesItems: SeriesItem[] = [];
+      // 用于聚合 per-file 系列
+      const perFileSeriesMap = new Map<string, SeriesItem>();
 
       for (const file of files) {
         try {
           const { content } = await fetchFileContent(token, file.path);
           const meta = parseFrontmatter(content);
+          const seriesVal = isSeriesContent(content);
 
-          if (isSeriesContent(content)) {
+          if (!seriesVal) {
+            // 普通文章
+            articleItems.push({ ...file, meta });
+            continue;
+          }
+
+          // 判断是旧格式（series: true + <details>）还是新格式（series: <名称>）
+          if (seriesVal === 'true' && content.includes('<details')) {
+            // 旧格式：series: true + <details>
             const parsed = parseSeriesContent(content);
             const catMatch = file.path.match(/^docs\/([^/]+)\//);
             seriesItems.push({
@@ -66,19 +77,67 @@ export default function ManageTab({ token, onTokenChange, onEditArticle, onEditS
                 title: parsed.seriesTitle,
                 path: file.path,
                 sha: file.sha,
-                articles: parsed.articles,
+                articles: parsed.articles.map((a, i) => ({
+                  ...a,
+                  filePath: file.path,
+                  fileSha: file.sha,
+                })),
                 date: parsed.articles.length > 0 ? parsed.articles[parsed.articles.length - 1].date : '',
                 tags: parsed.tags,
                 description: parsed.description,
               },
               category: catMatch ? catMatch[1] : '',
             });
-          } else {
-            articleItems.push({ ...file, meta });
+          } else if (seriesVal !== 'true') {
+            // 新格式：series: <系列名> — 每个文章独立文件
+            const catMatch = file.path.match(/^docs\/([^/]+)\//);
+            const category = catMatch ? catMatch[1] : '';
+
+            // 提取正文
+            const body = content.replace(/^---\n[\s\S]*?\n---\n?/, '');
+
+            if (!perFileSeriesMap.has(seriesVal)) {
+              perFileSeriesMap.set(seriesVal, {
+                info: {
+                  title: seriesVal,
+                  path: file.path,
+                  sha: file.sha,
+                  articles: [],
+                  date: '',
+                  tags: [],
+                  description: '',
+                },
+                category,
+              });
+            }
+
+            const existing = perFileSeriesMap.get(seriesVal)!;
+            existing.info.articles.push({
+              id: `article_${existing.info.articles.length}`,
+              title: meta.title,
+              date: meta.date || '',
+              content: body,
+              filePath: file.path,
+              fileSha: file.sha,
+            });
+
+            // 合并标签和描述
+            existing.info.tags = [...new Set([...existing.info.tags, ...meta.tags])];
+            if (meta.description && !existing.info.description) {
+              existing.info.description = meta.description;
+            }
+            if (!existing.info.date || (meta.date && meta.date > existing.info.date)) {
+              existing.info.date = meta.date;
+            }
           }
         } catch {
           // 跳过无法读取的文件
         }
+      }
+
+      // 将 per-file 系列加入结果
+      for (const [, s] of perFileSeriesMap) {
+        seriesItems.push(s);
       }
 
       setArticles(articleItems);
