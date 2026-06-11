@@ -19,7 +19,7 @@ const categoryConfig = {
 
 // 解析 frontmatter
 function parseFrontmatter(content) {
-  const match = content.match(/^---\n([\s\S]*?)\n---/);
+  const match = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
   if (!match) return {};
 
   const fm = match[1];
@@ -242,6 +242,88 @@ function generateCategories() {
   return categories;
 }
 
+// 生成系列文章数据（按系列名称归组）
+function generateSeriesData() {
+  const seriesMap = new Map(); // seriesName -> { articles: [...], dirName: string }
+
+  for (const dirName of Object.keys(categoryConfig)) {
+    const dirPath = path.join(docsDir, dirName);
+    if (!fs.existsSync(dirPath)) continue;
+
+    // 扫描当前目录 md 文件
+    const files = fs.readdirSync(dirPath).filter(f => f.endsWith('.md') && f !== 'intro.md');
+    for (const file of files) {
+      const filePath = path.join(dirPath, file);
+      const content = fs.readFileSync(filePath, 'utf-8');
+      const match = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+      if (!match) continue;
+      const seriesMatch = match[1].match(/^series:\s*(.+)$/m);
+      if (!seriesMatch) continue;
+      const seriesName = seriesMatch[1].replace(/^["']|["']$/g, '').trim();
+      if (!seriesName) continue;
+
+      const fm = parseFrontmatter(content);
+      const title = fm.title || content.match(/^#\s+(.+)/m)?.[1] || file.replace(/\.md$/, '');
+      const slug = file.replace(/\.md$/, '');
+
+      if (!seriesMap.has(seriesName)) {
+        seriesMap.set(seriesName, { articles: [], dirName });
+      }
+      seriesMap.get(seriesName).articles.push({
+        title,
+        slug,
+        path: `/docs/${dirName}/${slug}`,
+        sidebar_position: fm.sidebar_position || 999,
+        date: fm.date || null,
+      });
+    }
+
+    // 扫描子目录 md 文件
+    const subDirs = fs.readdirSync(dirPath, { withFileTypes: true })
+      .filter(d => d.isDirectory() && !d.name.startsWith('.'))
+      .map(d => d.name);
+    for (const subDir of subDirs) {
+      const subDirPath = path.join(dirPath, subDir);
+      const subFiles = fs.readdirSync(subDirPath).filter(f => f.endsWith('.md') && f !== 'intro.md');
+      for (const file of subFiles) {
+        const filePath = path.join(subDirPath, file);
+        const content = fs.readFileSync(filePath, 'utf-8');
+        const match = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+        if (!match) continue;
+        const seriesMatch = match[1].match(/^series:\s*(.+)$/m);
+        if (!seriesMatch) continue;
+        const seriesName = seriesMatch[1].replace(/^["']|["']$/g, '').trim();
+        if (!seriesName) continue;
+
+        const fm = parseFrontmatter(content);
+        const title = fm.title || content.match(/^#\s+(.+)/m)?.[1] || file.replace(/\.md$/, '');
+        const slug = file.replace(/\.md$/, '');
+
+        if (!seriesMap.has(seriesName)) {
+          seriesMap.set(seriesName, { articles: [], dirName });
+        }
+        seriesMap.get(seriesName).articles.push({
+          title,
+          slug,
+          path: `/docs/${dirName}/${subDir}/${slug}`,
+          sidebar_position: fm.sidebar_position || 999,
+          date: fm.date || null,
+        });
+      }
+    }
+  }
+
+  // 转为数组，按系列名排序
+  const result = [];
+  for (const [name, data] of seriesMap) {
+    data.articles.sort((a, b) => a.sidebar_position - b.sidebar_position);
+    result.push({ name, dirName: data.dirName, articles: data.articles });
+  }
+  result.sort((a, b) => a.name.localeCompare(b.name, 'zh-CN'));
+
+  return result;
+}
+
 // 主函数
 function main() {
   console.log('📊 生成博客数据...');
@@ -251,19 +333,33 @@ function main() {
     recentNotes: generateRecentNotes(),
     projects: generateProjects(),
     categories: generateCategories(),
+    series: generateSeriesData(),
     generatedAt: new Date().toISOString(),
   };
 
-  // 写入 JSON 文件
+  // 写入 JSON 文件（给 React 组件用）
   const outputPath = path.join(outputDir, 'blog-data.json');
   fs.writeFileSync(outputPath, JSON.stringify(data, null, 2), 'utf-8');
 
-  console.log(`✅ 数据已生成: ${outputPath}`);
+  // 也写入 static/ 目录（给客户端 JS 用）
+  const staticDir = path.join(__dirname, '..', 'static', 'data');
+  if (!fs.existsSync(staticDir)) {
+    fs.mkdirSync(staticDir, { recursive: true });
+  }
+  const staticPath = path.join(staticDir, 'series-data.json');
+  // 只写系列数据，精简体积
+  const seriesOnly = { series: data.series };
+  fs.writeFileSync(staticPath, JSON.stringify(seriesOnly, null, 2), 'utf-8');
+
+  console.log(`✅ 数据已生成:`);
+  console.log(`   - ${outputPath}`);
+  console.log(`   - ${staticPath}`);
   console.log(`   - 学习笔记: ${data.stats.notes} 篇`);
   console.log(`   - 代码片段: ${data.stats.codeSnippets} 个`);
   console.log(`   - 项目作品: ${data.stats.projects} 个`);
   console.log(`   - 最新笔记: ${data.recentNotes.length} 篇`);
   console.log(`   - 分类: ${data.categories.length} 个`);
+  console.log(`   - 系列: ${data.series.length} 个`);
 }
 
 main();

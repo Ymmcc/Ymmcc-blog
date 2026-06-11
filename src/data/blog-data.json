@@ -1,7 +1,7 @@
 {
   "stats": {
-    "notes": 6,
-    "codeSnippets": 15,
+    "notes": 9,
+    "codeSnippets": 22,
     "projects": 0
   },
   "recentNotes": [
@@ -24,13 +24,13 @@
       "sidebar_position": 2
     },
     {
-      "title": "concurrency-isolation",
-      "description": "--- title: 并发与事务隔离 sidebar_position: 20260611 date: 2026-06-10 tags: [数据库, MySQL, DBMS] description:...",
-      "link": "/docs/backend/database/concurrency-isolation",
-      "tag": "数据库",
-      "icon": "🐍",
+      "title": "二叉树遍历算法",
+      "description": "--- sidebar_position: 2 custom_edit_url: null --- 二叉树是计算机科学中最重要的数据结构之一，遍历是其基本操作。 ## 二叉树定义 ## 前序遍历（Pr...",
+      "link": "/docs/algorithm/binary-tree",
+      "tag": "算法",
+      "icon": "🌳",
       "date": null,
-      "sidebar_position": 999
+      "sidebar_position": 2
     }
   ],
   "projects": [],
@@ -60,16 +60,24 @@
           "link": "/docs/backend/python-basics"
         },
         {
-          "name": "concurrency-isolation",
-          "link": "/docs/backend/database/concurrency-isolation"
+          "name": "三层模式与二级映射",
+          "link": "/docs/backend/database/three-level-schema"
         },
         {
-          "name": "integrity-rules",
+          "name": "三种完整性规则",
           "link": "/docs/backend/database/integrity-rules"
         },
         {
-          "name": "三层模式与二级映射",
-          "link": "/docs/backend/database/three-level-schema"
+          "name": "备份数据库/表",
+          "link": "/docs/backend/database/shujuku"
+        },
+        {
+          "name": "并发与事务隔离",
+          "link": "/docs/backend/database/concurrency-isolation"
+        },
+        {
+          "name": "关系代数",
+          "link": "/docs/backend/database/guandaishu"
         }
       ]
     },
@@ -83,6 +91,10 @@
         {
           "name": "二叉树遍历算法",
           "link": "/docs/algorithm/binary-tree"
+        },
+        {
+          "name": "验证回文串",
+          "link": "/docs/algorithm/yanzhengwen"
         }
       ]
     },
@@ -95,5 +107,61 @@
       "items": []
     }
   ],
-  "generatedAt": "2026-06-10T14:54:24.536Z"
+  "series": [
+    {
+      "name": "数据库",
+      "dirName": "backend",
+      "articles": [
+        {
+          "title": "三层模式与二级映射",
+          "slug": "three-level-schema",
+          "path": "/docs/backend/database/three-level-schema",
+          "sidebar_position": 20260608,
+          "date": "2026-06-08"
+        },
+        {
+          "title": "三种完整性规则",
+          "slug": "integrity-rules",
+          "path": "/docs/backend/database/integrity-rules",
+          "sidebar_position": 20260610,
+          "date": "2026-06-10"
+        },
+        {
+          "title": "备份数据库/表",
+          "slug": "shujuku",
+          "path": "/docs/backend/database/shujuku",
+          "sidebar_position": 20260610,
+          "date": "2026-06-10"
+        },
+        {
+          "title": "并发与事务隔离",
+          "slug": "concurrency-isolation",
+          "path": "/docs/backend/database/concurrency-isolation",
+          "sidebar_position": 20260611,
+          "date": "2026-06-10"
+        },
+        {
+          "title": "关系代数",
+          "slug": "guandaishu",
+          "path": "/docs/backend/database/guandaishu",
+          "sidebar_position": 20260611,
+          "date": "2026-06-11"
+        }
+      ]
+    },
+    {
+      "name": "双指针：左右指针碰撞",
+      "dirName": "algorithm",
+      "articles": [
+        {
+          "title": "验证回文串",
+          "slug": "yanzhengwen",
+          "path": "/docs/algorithm/yanzhengwen",
+          "sidebar_position": 202606112343,
+          "date": "2026-06-11"
+        }
+      ]
+    }
+  ],
+  "generatedAt": "2026-06-11T16:03:37.935Z"
 }

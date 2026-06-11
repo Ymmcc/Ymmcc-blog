@@ -16,6 +16,13 @@ const config: Config = {
         defer: 'true',
       },
     },
+    {
+      tagName: 'script',
+      attributes: {
+        src: '/Ymmcc-blog/js/sidebar-series.js',
+        defer: 'true',
+      },
+    },
   ],
 
   future: {
@@ -160,6 +167,10 @@ const config: Config = {
     scripts: [
       {
         src: '/Ymmcc-blog/js/sidebar-toc.js',
+        async: true,
+      },
+      {
+        src: '/Ymmcc-blog/js/sidebar-series.js',
         async: true,
       },
     ],
