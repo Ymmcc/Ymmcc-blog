@@ -298,13 +298,22 @@ export function convertImageUrlToCDN(markdown: string): string {
   );
 }
 
+// 将标签字符串转为数组（兼容中文逗号、顿号）
+function parseTags(tagsStr: string): string[] {
+  return tagsStr
+    .replace(/[，、\s]+/g, ',')  // 中文逗号、顿号、空白 → 英文逗号
+    .split(',')
+    .map(t => t.trim())
+    .filter(Boolean);
+}
+
 // 生成 Markdown 内容（将 HTML 转换为 Markdown）
 export function generateMarkdown(
   data: { title: string; tags: string; description: string; markdownContent: string }
 ): string {
   const now = new Date();
   const date = now.toISOString().split('T')[0];
-  const tagsArray = data.tags.split(',').map(t => t.trim()).filter(Boolean);
+  const tagsArray = parseTags(data.tags);
   const hhmm = `${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}`;
   const sidebarPos = parseInt(date.replace(/-/g, '') + hhmm, 10);
 
@@ -450,7 +459,7 @@ export function generatePerFileSeriesMarkdown(
 ): string {
   const now = new Date();
   const date = now.toISOString().split('T')[0];
-  const tagsArray = data.tags.split(',').map(t => t.trim()).filter(Boolean);
+  const tagsArray = parseTags(data.tags);
   const hhmm = `${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}`;
   const sidebarPos = parseInt(date.replace(/-/g, '') + hhmm, 10);
 

@@ -10,3 +10,4 @@ custom_edit_url: null
 ## 内容目录
 
 - 二叉树遍历算法
+- [验证回文串](./yanzhengwen) — 双指针系列：左右指针碰撞

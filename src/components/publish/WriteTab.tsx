@@ -9,6 +9,27 @@ import {
   fetchFileContent, fetchSeriesList, parseSeriesContent, compressImage, optimizeImageTags,
   isOldSeriesFormat
 } from './github-api';
+
+// 本地同步服务器地址（与 dev server 并行运行）
+const LOCAL_SYNC_URL = 'http://localhost:3456/sync';
+
+// 发布成功后，尝试同步到本地文件系统（仅开发环境）
+// 浏览器无法直接写文件，需要通过本地同步服务器完成
+async function syncToLocal(filePath: string, content: string, markdownContent?: string) {
+  try {
+    const res = await fetch(LOCAL_SYNC_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path: filePath, content }),
+    });
+    if (res.ok) {
+      console.info(`[local-sync] ✓ ${filePath}`);
+    }
+  } catch {
+    // 本地同步服务器未启动时静默忽略（仅影响本地开发环境）
+    console.info('[local-sync] 本地服务未启动，跳过文件同步');
+  }
+}
 import RichTextEditor from './RichTextEditor';
 import PublishModal from './PublishModal';
 import PreviewModal from './PreviewModal';
@@ -274,6 +295,8 @@ export default function WriteTab({
       if (articleMode === 'series') {
         // === 系列文章发布 ===
         const isEditingExisting = !!(editingPath && editingSeriesArticleTitle);
+        let localFilePath = '';
+        let localContent = '';
 
         if (isEditingExisting) {
           // 编辑已有文章（新格式 per-file）
@@ -285,6 +308,8 @@ export default function WriteTab({
             markdownContent: optimizedHtml,
           });
           await upsertFile(token, editingPath!, content, `feat: 更新系列文章 "${seriesTitle}" - ${articleTitle}`, editingSha);
+          localFilePath = editingPath!;
+          localContent = content;
         } else if (editingPath && !editingSeriesArticleTitle) {
           // 已有系列，追加新文章（判断格式）
           const { content: existingContent, sha } = await fetchFileContent(token, editingPath!);
@@ -302,6 +327,8 @@ export default function WriteTab({
               articles: existingArticles,
             });
             await upsertFile(token, editingPath!, seriesContent, `feat: 更新系列文章 "${seriesTitle}"`, sha);
+            localFilePath = editingPath!;
+            localContent = seriesContent;
           } else {
             // 新格式：创建独立文件
             const newPath = getPerFileSeriesPath(editingPath, articleTitle);
@@ -313,6 +340,8 @@ export default function WriteTab({
               markdownContent: optimizedHtml,
             });
             await upsertFile(token, newPath, content, `feat: 添加系列文章 "${seriesTitle}" - ${articleTitle}`);
+            localFilePath = newPath;
+            localContent = content;
           }
         } else {
           // 新建系列（新格式：独立文件）
@@ -326,7 +355,12 @@ export default function WriteTab({
           });
           const path = getFilePath(articleData.category, articleTitle);
           await upsertFile(token, path, content, `feat: 添加系列文章 "${seriesTitle}" - ${articleTitle}`);
+          localFilePath = path;
+          localContent = content;
         }
+
+        // 同步到本地文件系统
+        await syncToLocal(localFilePath, localContent);
 
         setStatusMsg({ type: 'success', text: '系列文章发布成功！GitHub Actions 将自动部署' });
         setShowPublish(false);
@@ -342,10 +376,13 @@ export default function WriteTab({
         onClearEditMode();
         onPublishSuccess();
       } else {
-        // === 单篇文章发布（原有逻辑）===
+        // === 单篇文章发布 ===
         const content = generateMarkdown(processedData);
         const path = editingPath || getFilePath(articleData.category, articleData.title);
         await upsertFile(token, path, content, `feat: ${editingSha ? '更新' : '添加'}文章 "${articleData.title}"`, editingSha);
+
+        // 同步到本地文件系统
+        await syncToLocal(path, content);
 
         setStatusMsg({ type: 'success', text: '文章发布成功！GitHub Actions 将自动部署' });
         setShowPublish(false);

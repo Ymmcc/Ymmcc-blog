@@ -2,7 +2,7 @@
 title: 验证回文串
 sidebar_position: 202606112343
 date: 2026-06-11
-tags: [双指针，左右指针]
+tags: [双指针, 左右指针]
 description: 掌握左右指针向中间移动，最终相会的解法。
 series: 双指针：左右指针碰撞
 ---
