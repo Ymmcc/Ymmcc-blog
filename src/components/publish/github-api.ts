@@ -298,6 +298,21 @@ export function convertImageUrlToCDN(markdown: string): string {
   );
 }
 
+// 修复 Markdown 粗体在中文语境下 CommonMark 解析失败的问题
+//
+// 问题：CommonMark 规范要求 `**text**` 的闭合 `**` 必须满足"右边界"条件。
+// 当 `**` 前是中文标点（如 `：`、`。`）、后是中文字符时，它不被认为是右边界，
+// 因此无法闭合粗体，导致整个 `**text**` 被当作纯文本渲染。
+//
+// 修复：在闭合 `**` 和中文字符之间插入一个空格，使其正常解析。
+// 对于中文字符，额外空格不影响视觉呈现。
+function fixBoldCJK(markdown: string): string {
+  return markdown.replace(
+    /\*\*(.+?)\*\*(?=[一-鿿㐀-䶿＀-￯　-〿])/g,
+    '**$1** '
+  );
+}
+
 // 将标签字符串转为数组（兼容中文逗号、顿号）
 function parseTags(tagsStr: string): string[] {
   return tagsStr
@@ -318,7 +333,7 @@ export function generateMarkdown(
   const sidebarPos = parseInt(date.replace(/-/g, '') + hhmm, 10);
 
   // 将富文本 HTML 转换为 Markdown
-  const markdownBody = convertImageUrlToCDN(turndownService.turndown(data.markdownContent));
+  const markdownBody = fixBoldCJK(convertImageUrlToCDN(turndownService.turndown(data.markdownContent)));
 
   const md = `---
 title: ${data.title}
@@ -430,7 +445,7 @@ series: true
 
   data.articles.forEach((article, index) => {
     // 将 HTML 转为 Markdown 并替换图片链接为 CDN
-    const body = convertImageUrlToCDN(turndownService.turndown(article.content));
+    const body = fixBoldCJK(convertImageUrlToCDN(turndownService.turndown(article.content)));
 
     md += `<details${index === 0 ? ' open' : ''}>
 <summary><strong>📖 ${article.title}</strong></summary>
@@ -464,7 +479,7 @@ export function generatePerFileSeriesMarkdown(
   const sidebarPos = parseInt(date.replace(/-/g, '') + hhmm, 10);
 
   // 将富文本 HTML 转换为 Markdown，并将图片链接转为 CDN 加速
-  const markdownBody = convertImageUrlToCDN(turndownService.turndown(data.markdownContent));
+  const markdownBody = fixBoldCJK(convertImageUrlToCDN(turndownService.turndown(data.markdownContent)));
 
   return `---
 title: ${data.title}
