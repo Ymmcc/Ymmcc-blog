@@ -70,12 +70,15 @@
 
     sidebarLinks.forEach(function (link) {
       var href = link.getAttribute('href') || '';
-      // 移除末尾斜杠并拼接 basePath
-      var fullPath = (basePath + href).replace(/\/$/g, '');
-      // 也尝试匹配结尾不包含 /
-      var altPath = fullPath.replace(/\/$/, '');
+      // Docusaurus 侧边栏链接在生产环境已包含 basePath
+      // 去掉 basePath 以匹配 series-data.json 中的相对路径
+      var relativePath = href;
+      if (basePath && href.indexOf(basePath) === 0) {
+        relativePath = href.substring(basePath.length);
+      }
+      relativePath = relativePath.replace(/\/$/g, '');
 
-      var match = pathMap[fullPath] || pathMap[altPath];
+      var match = pathMap[relativePath];
       if (!match) return;
 
       var seriesName = match.seriesName;
