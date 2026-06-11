@@ -4,6 +4,8 @@ import TurndownService from 'turndown';
 const REPO_OWNER = 'Ymmcc';
 const REPO_NAME = 'Ymmcc-blog';
 const API_BASE = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents`;
+const RAW_BASE = `https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/main`;
+const CDN_BASE = `https://cdn.jsdelivr.net/gh/${REPO_OWNER}/${REPO_NAME}@main`;
 
 // 初始化 Turndown 服务（HTML 转 Markdown）
 const turndownService = new TurndownService({
@@ -239,9 +241,9 @@ export async function uploadImage(token: string, filename: string, base64Data: s
     throw new Error(error.message || '图片上传失败');
   }
 
-  // 返回 jsDelivr CDN 链接加速国内访问
-  // 图片存储在 GitHub 仓库中，通过 CDN 分发速度更快
-  return `https://cdn.jsdelivr.net/gh/${REPO_OWNER}/${REPO_NAME}@main/${path}`;
+  // 返回 GitHub 原始链接
+  // 生成 Markdown 时会被替换为 Docusaurus 本地路径（如 /img/uploads/xxx.png）
+  return `${RAW_BASE}/${path}`;
 }
 
 /*** 图片优化 ***/
@@ -287,18 +289,31 @@ export function optimizeImageTags(html: string): string {
     .replace(/<img\s/g, '<img decoding="async" ');
 }
 
+// 将 Markdown 中的 GitHub 原始图片链接替换为 Docusaurus 本地路径
+// Docusaurus 中 static/ 目录的文件可直接通过 / 访问
+export function convertImageUrlToCDN(markdown: string): string {
+  return markdown.replace(
+    new RegExp(`${RAW_BASE.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/static/img/uploads/`, 'g'),
+    `/img/uploads/`
+  );
+}
+
 // 生成 Markdown 内容（将 HTML 转换为 Markdown）
 export function generateMarkdown(
   data: { title: string; tags: string; description: string; markdownContent: string }
 ): string {
-  const date = new Date().toISOString().split('T')[0];
+  const now = new Date();
+  const date = now.toISOString().split('T')[0];
   const tagsArray = data.tags.split(',').map(t => t.trim()).filter(Boolean);
+  const hhmm = `${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}`;
+  const sidebarPos = parseInt(date.replace(/-/g, '') + hhmm, 10);
 
   // 将富文本 HTML 转换为 Markdown
-  const markdownBody = turndownService.turndown(data.markdownContent);
+  const markdownBody = convertImageUrlToCDN(turndownService.turndown(data.markdownContent));
 
   const md = `---
 title: ${data.title}
+sidebar_position: ${sidebarPos}
 date: ${date}
 tags: [${tagsArray.join(', ')}]
 description: ${data.description}
@@ -326,18 +341,18 @@ const PINYIN_MAP: Record<string, string> = {
   '相': 'xiang', '关': 'guan', '知': 'zhi', '识': 'shi',
   '创': 'chuang', '建': 'jian', '新': 'xin', '增': 'zeng', '删': 'shan',
   '改': 'gai', '查': 'cha', '添': 'tian', '加': 'jia', '编': 'bian', '辑': 'ji',
-  '优': 'you', '化': 'hua', '提': 'ti', '升': 'sheng', '加': 'jia', '速': 'su',
+  '优': 'you', '提': 'ti', '升': 'sheng', '速': 'su',
   '第': 'di', '一': 'yi', '篇': 'pian', '章': 'zhang', '节': 'jie',
-  '使': 'shi', '用': 'yong', '教': 'jiao', '程': 'cheng', '入': 'ru', '门': 'men',
+  '使': 'shi', '用': 'yong', '教': 'jiao', '程': 'cheng',
   '初': 'chu', '中': 'zhong', '高': 'gao', '阶': 'jie', '技': 'ji', '巧': 'qiao',
   '代': 'dai', '码': 'ma', '项': 'xiang', '目': 'mu', '框': 'kuang', '架': 'jia',
-  '前': 'qian', '端': 'duan', '后': 'hou', '后': 'hou', '服': 'fu',
+  '前': 'qian', '端': 'duan', '后': 'hou', '服': 'fu',
   '页': 'ye', '面': 'mian', '组': 'zu', '件': 'jian', '路': 'lu', '由': 'you',
-  '部': 'bu', '署': 'shu', '部': 'bu', '测': 'ce', '试': 'shi', '调': 'tiao',
-  '试': 'shi', '错': 'cuo', '误': 'wu', '异': 'yi', '常': 'chang',
-  '处': 'chu', '安': 'an', '全': 'quan', '性': 'xing', '权': 'quan', '限': 'xian',
+  '部': 'bu', '署': 'shu', '测': 'ce', '试': 'shi', '调': 'tiao',
+  '错': 'cuo', '误': 'wu', '异': 'yi', '常': 'chang',
+  '处': 'chu', '安': 'an', '全': 'quan', '权': 'quan', '限': 'xian',
   '验': 'yan', '证': 'zheng', '登': 'deng', '录': 'lu', '注': 'zhu', '册': 'ce',
-  '用': 'yong', '户': 'hu', '管': 'guan', '配': 'pei', '置': 'zhi',
+  '户': 'hu', '管': 'guan', '配': 'pei', '置': 'zhi',
 };
 
 // 将标题转换为纯英文 slug
@@ -405,7 +420,8 @@ series: true
 `;
 
   data.articles.forEach((article, index) => {
-    const body = turndownService.turndown(article.content);
+    // 将 HTML 转为 Markdown 并替换图片链接为 CDN
+    const body = convertImageUrlToCDN(turndownService.turndown(article.content));
 
     md += `<details${index === 0 ? ' open' : ''}>
 <summary><strong>📖 ${article.title}</strong></summary>
@@ -432,12 +448,14 @@ export function generatePerFileSeriesMarkdown(
     markdownContent: string;
   }
 ): string {
-  const date = new Date().toISOString().split('T')[0];
+  const now = new Date();
+  const date = now.toISOString().split('T')[0];
   const tagsArray = data.tags.split(',').map(t => t.trim()).filter(Boolean);
-  const sidebarPos = parseInt(date.replace(/-/g, ''), 10);
+  const hhmm = `${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}`;
+  const sidebarPos = parseInt(date.replace(/-/g, '') + hhmm, 10);
 
-  // 将富文本 HTML 转换为 Markdown
-  const markdownBody = turndownService.turndown(data.markdownContent);
+  // 将富文本 HTML 转换为 Markdown，并将图片链接转为 CDN 加速
+  const markdownBody = convertImageUrlToCDN(turndownService.turndown(data.markdownContent));
 
   return `---
 title: ${data.title}

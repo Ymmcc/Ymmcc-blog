@@ -1,7 +1,7 @@
 {
   "stats": {
     "notes": 6,
-    "codeSnippets": 10,
+    "codeSnippets": 15,
     "projects": 0
   },
   "recentNotes": [
@@ -15,24 +15,6 @@
       "sidebar_position": 2
     },
     {
-      "title": "并发与事务隔离",
-      "description": "MySQL 数据库事务隔离级别与并发问题 ## 一、并发带来的问题 ## 二、事务隔离级别 ## 三、各事务隔离级别优缺点以及选择",
-      "link": "/docs/backend/database/concurrency-isolation",
-      "tag": "数据库",
-      "icon": "🐍",
-      "date": null,
-      "sidebar_position": 2
-    },
-    {
-      "title": "三种完整性规则",
-      "description": "基于MySQL的数据库实体完整性、参照完整性和用户定义完整性 ## 一、基本概念 ## 二、具体实例",
-      "link": "/docs/backend/database/integrity-rules",
-      "tag": "数据库",
-      "icon": "🐍",
-      "date": null,
-      "sidebar_position": 2
-    },
-    {
       "title": "Python 基础语法",
       "description": "Python 是一种简洁、易读的编程语言，适合初学者学习。 ## 变量和数据类型 ## 控制流 ## 函数 ## 列表推导式 ## 文件操作 ## 异常处理 ## 模块和包",
       "link": "/docs/backend/python-basics",
@@ -42,9 +24,9 @@
       "sidebar_position": 2
     },
     {
-      "title": "三层模式与二级映射",
-      "description": "数据库系统的三级模式结构和二级映射机制 ## 一、三层模式 ## 二、二级映射 ## 实例 ## 总结",
-      "link": "/docs/backend/database/three-level-schema",
+      "title": "concurrency-isolation",
+      "description": "--- title: 并发与事务隔离 sidebar_position: 20260611 date: 2026-06-10 tags: [数据库, MySQL, DBMS] description:...",
+      "link": "/docs/backend/database/concurrency-isolation",
       "tag": "数据库",
       "icon": "🐍",
       "date": null,
@@ -78,16 +60,16 @@
           "link": "/docs/backend/python-basics"
         },
         {
-          "name": "三层模式与二级映射",
-          "link": "/docs/backend/database/three-level-schema"
+          "name": "concurrency-isolation",
+          "link": "/docs/backend/database/concurrency-isolation"
         },
         {
-          "name": "三种完整性规则",
+          "name": "integrity-rules",
           "link": "/docs/backend/database/integrity-rules"
         },
         {
-          "name": "并发与事务隔离",
-          "link": "/docs/backend/database/concurrency-isolation"
+          "name": "三层模式与二级映射",
+          "link": "/docs/backend/database/three-level-schema"
         }
       ]
     },
@@ -113,5 +95,5 @@
       "items": []
     }
   ],
-  "generatedAt": "2026-06-09T01:33:32.570Z"
+  "generatedAt": "2026-06-10T14:54:24.536Z"
 }

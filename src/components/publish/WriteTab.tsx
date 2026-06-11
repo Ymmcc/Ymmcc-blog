@@ -198,7 +198,10 @@ export default function WriteTab({
             return;
           }
 
-          const filename = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+          // 从实际压缩结果检测图片格式（compressImage 始终输出 JPEG）
+          const actualFormat = (base64.match(/^data:image\/(\w+);/)?.[1] || 'jpeg').replace('jpeg', 'jpg');
+          const safeBaseName = file.name.replace(/\.[^.]+$/, '').replace(/[^a-zA-Z0-9._-]/g, '_');
+          const filename = `${Date.now()}-${safeBaseName}.${actualFormat}`;
           try {
             const url = await uploadImage(githubToken, filename, base64);
             setStatusMsg({ type: 'success', text: '图片上传成功' });
@@ -232,7 +235,7 @@ export default function WriteTab({
       setStatusMsg({ type: 'success', text: `正在上传图片 ${i + 1}/${matches.length}...` });
 
       try {
-        const ext = base64Data.match(/data:image\/([^;]+)/)?.[1] || 'png';
+        const ext = (base64Data.match(/data:image\/([^;]+)/)?.[1] || 'png').replace('jpeg', 'jpg');
         const filename = `${Date.now()}-${i}.${ext}`;
         const url = await uploadImage(token, filename, base64Data);
         result = result.replace(fullMatch, fullMatch.replace(base64Data, url));

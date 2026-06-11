@@ -127,4 +127,4 @@ WHERE NOT EXISTS (
 ```
 ## 总结
 
-![Sheet\_20260611](https://cdn.jsdelivr.net/gh/Ymmcc/Ymmcc-blog@main/static/img/uploads/1781155985274-Sheet_20260611.png)
+![Sheet\_20260611](/img/uploads/1781155985274-Sheet_20260611.png)

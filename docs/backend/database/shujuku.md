@@ -1,6 +1,6 @@
 ---
 title: 备份数据库/表
-sidebar_position: 20260612
+sidebar_position: 20260610
 date: 2026-06-10
 tags: [数据库, MySQL, DBMS]
 description: 基于MySQL语言的数据库系统相关知识
