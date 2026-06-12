@@ -5,7 +5,7 @@ import { ArticleData, EditMode, ArticleMode, SeriesInfo, defaultArticleData } fr
 import { saveDraft } from './storage';
 import {
   generateMarkdown, generateSeriesMarkdown, generatePerFileSeriesMarkdown,
-  getFilePath, getPerFileSeriesPath, upsertFile, uploadImage,
+  getFilePath, getSeriesFilePath, getPerFileSeriesPath, toSlug, upsertFile, uploadImage,
   fetchFileContent, fetchSeriesList, parseSeriesContent, compressImage, optimizeImageTags,
   isOldSeriesFormat
 } from './github-api';
@@ -353,8 +353,22 @@ export default function WriteTab({
             description: processedData.description,
             markdownContent: optimizedHtml,
           });
-          const path = getFilePath(articleData.category, articleTitle);
+          const path = getSeriesFilePath(articleData.category, seriesTitle, articleTitle);
           await upsertFile(token, path, content, `feat: 添加系列文章 "${seriesTitle}" - ${articleTitle}`);
+          // 为系列子目录创建 _category_.json（使侧边栏显示可折叠的分组标题）
+          const seriesSlug = toSlug(seriesTitle);
+          const categoryJsonPath = `docs/${articleData.category}/${seriesSlug}/_category_.json`;
+          const categoryJson = JSON.stringify({
+            label: seriesTitle,
+            position: 2,
+            collapsible: true,
+            collapsed: false,
+            link: {
+              type: 'generated-index',
+              description: `${seriesTitle}系列文章`,
+            },
+          }, null, 2);
+          await upsertFile(token, categoryJsonPath, categoryJson, `feat: 添加系列分类 "${seriesTitle}"`);
           localFilePath = path;
           localContent = content;
         }

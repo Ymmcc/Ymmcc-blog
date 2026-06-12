@@ -417,6 +417,23 @@ export function getFilePath(category: string, title: string): string {
   }
 }
 
+// 根据分类、系列标题和文章标题生成系列文章子目录路径
+// 例如：category=algorithm, seriesTitle="双指针：左右碰撞指针", articleTitle="验证回文串"
+// 返回：docs/algorithm/shuang-zhi-zhen/yanzhengwen.md
+// 这样 Docusaurus 的 _category_.json 就能自动分组
+export function getSeriesFilePath(category: string, seriesTitle: string, articleTitle: string): string {
+  const seriesSlug = toSlug(seriesTitle);
+  const articleSlug = toSlug(articleTitle);
+
+  switch (category) {
+    case 'frontend': return `docs/frontend/${seriesSlug}/${articleSlug}.md`;
+    case 'backend': return `docs/backend/${seriesSlug}/${articleSlug}.md`;
+    case 'algorithm': return `docs/algorithm/${seriesSlug}/${articleSlug}.md`;
+    case 'projects': return `docs/projects/${seriesSlug}/${articleSlug}.md`;
+    default: return `docs/${seriesSlug}/${articleSlug}.md`;
+  }
+}
+
 /*** 系列文章相关 ***/
 
 // 生成系列文章 Markdown
