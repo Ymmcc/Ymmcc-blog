@@ -1,0 +1,10 @@
+{
+  "label": "双指针：左右碰撞指针",
+  "position": 2,
+  "collapsible": true,
+  "collapsed": false,
+  "link": {
+    "type": "generated-index",
+    "description": "双指针算法系列：左右指针向中间移动，最终相会。"
+  }
+}

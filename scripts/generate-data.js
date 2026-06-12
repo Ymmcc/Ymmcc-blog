@@ -337,23 +337,12 @@ function main() {
     generatedAt: new Date().toISOString(),
   };
 
-  // 写入 JSON 文件（给 React 组件用）
+  // 写入 JSON 文件
   const outputPath = path.join(outputDir, 'blog-data.json');
   fs.writeFileSync(outputPath, JSON.stringify(data, null, 2), 'utf-8');
 
-  // 也写入 static/ 目录（给客户端 JS 用）
-  const staticDir = path.join(__dirname, '..', 'static', 'data');
-  if (!fs.existsSync(staticDir)) {
-    fs.mkdirSync(staticDir, { recursive: true });
-  }
-  const staticPath = path.join(staticDir, 'series-data.json');
-  // 只写系列数据，精简体积
-  const seriesOnly = { series: data.series };
-  fs.writeFileSync(staticPath, JSON.stringify(seriesOnly, null, 2), 'utf-8');
-
   console.log(`✅ 数据已生成:`);
   console.log(`   - ${outputPath}`);
-  console.log(`   - ${staticPath}`);
   console.log(`   - 学习笔记: ${data.stats.notes} 篇`);
   console.log(`   - 代码片段: ${data.stats.codeSnippets} 个`);
   console.log(`   - 项目作品: ${data.stats.projects} 个`);

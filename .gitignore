@@ -7,7 +7,6 @@
 # Generated files
 .docusaurus
 .cache-loader
-static/data/series-data.json
 
 # Misc
 .DS_Store

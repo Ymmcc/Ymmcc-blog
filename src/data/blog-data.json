@@ -94,7 +94,7 @@
         },
         {
           "name": "验证回文串",
-          "link": "/docs/algorithm/yanzhengwen"
+          "link": "/docs/algorithm/shuang-zhi-zhen/yanzhengwen"
         }
       ]
     },
@@ -156,12 +156,12 @@
         {
           "title": "验证回文串",
           "slug": "yanzhengwen",
-          "path": "/docs/algorithm/yanzhengwen",
+          "path": "/docs/algorithm/shuang-zhi-zhen/yanzhengwen",
           "sidebar_position": 202606112343,
           "date": "2026-06-11"
         }
       ]
     }
   ],
-  "generatedAt": "2026-06-11T16:06:52.079Z"
+  "generatedAt": "2026-06-12T14:11:18.233Z"
 }
