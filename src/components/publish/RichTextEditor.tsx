@@ -4,6 +4,10 @@ import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
 import { common, createLowlight } from 'lowlight';
+import { Table } from '@tiptap/extension-table';
+import { TableRow } from '@tiptap/extension-table-row';
+import { TableCell } from '@tiptap/extension-table-cell';
+import { TableHeader } from '@tiptap/extension-table-header';
 import ResizableImageExtension from './ResizableImageExtension';
 import styles from '../../pages/publish.module.css';
 
@@ -21,6 +25,7 @@ export default function RichTextEditor({ content, onChange, onImageUpload }: Pro
   const [imageAlt, setImageAlt] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [showCodeLang, setShowCodeLang] = useState(false);
+  const [showTableMenu, setShowTableMenu] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const editor = useEditor({
@@ -39,6 +44,13 @@ export default function RichTextEditor({ content, onChange, onImageUpload }: Pro
           class: 'editor-image',
         },
       }),
+      Table.configure({
+        resizable: true,
+        HTMLAttributes: { class: 'editor-table' },
+      }),
+      TableRow,
+      TableCell,
+      TableHeader,
       Placeholder.configure({
         placeholder: '在这里编写文章内容...',
       }),
@@ -104,6 +116,47 @@ export default function RichTextEditor({ content, onChange, onImageUpload }: Pro
     setShowImageDialog(false);
   };
 
+  // 解析 HTML 表格并插入编辑器
+  const parseAndInsertTable = useCallback((html: string) => {
+    if (!editor) return;
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+    const table = doc.querySelector('table');
+    if (!table) return;
+
+    const rows: string[][] = [];
+    table.querySelectorAll('tr').forEach(tr => {
+      const cells: string[] = [];
+      tr.querySelectorAll('th, td').forEach(cell => {
+        cells.push(cell.textContent?.trim() || '');
+      });
+      if (cells.length > 0) rows.push(cells);
+    });
+
+    if (rows.length === 0) return;
+
+    // 标准化列数（取最大列数）
+    const maxCols = Math.max(...rows.map(r => r.length));
+    const normalizedRows = rows.map(r => {
+      while (r.length < maxCols) r.push('');
+      return r;
+    });
+
+    // 构建 HTML 表格
+    let tableHtml = '<table><tbody>';
+    normalizedRows.forEach((row, rowIdx) => {
+      tableHtml += '<tr>';
+      row.forEach(cell => {
+        const tag = rowIdx === 0 ? 'th' : 'td';
+        tableHtml += `<${tag}><p>${cell}</p></${tag}>`;
+      });
+      tableHtml += '</tr>';
+    });
+    tableHtml += '</tbody></table>';
+
+    editor.chain().focus().insertContent(tableHtml).run();
+  }, [editor]);
+
   // 拖拽/粘贴图片
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -123,8 +176,21 @@ export default function RichTextEditor({ content, onChange, onImageUpload }: Pro
       e.preventDefault();
       const file = imageItem.getAsFile();
       if (file) handleFileUpload(file);
+      return;
     }
-  }, [handleFileUpload]);
+
+    // 检测粘贴的 HTML 表格
+    const htmlItem = items.find(item => item.type === 'text/html');
+    if (htmlItem) {
+      htmlItem.getAsString((html) => {
+        if (/<table[\s>]/i.test(html) && editor) {
+          e.preventDefault();
+          // 解析粘贴的 HTML 表格并插入
+          parseAndInsertTable(html);
+        }
+      });
+    }
+  }, [handleFileUpload, editor]);
 
   // 常用编程语言列表
   const codeLanguages = [
@@ -316,6 +382,45 @@ export default function RichTextEditor({ content, onChange, onImageUpload }: Pro
         >
           🔗 链接
         </button>
+
+        <div className={styles.tiptapDivider} />
+
+        {/* 表格操作 */}
+        <div className={styles.codeBlockGroup}>
+          <button
+            onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
+            className={`${styles.tiptapBtn} ${editor.isActive('table') ? styles.active : ''}`}
+            title="插入表格"
+            type="button"
+          >
+            ⊞ 表格
+          </button>
+          <button
+            onClick={() => setShowTableMenu(!showTableMenu)}
+            className={styles.tiptapBtnSmall}
+            title="表格操作"
+            type="button"
+          >
+            ▾
+          </button>
+          {showTableMenu && (
+            <div className={styles.codeLangDropdown}>
+              <button onClick={() => { editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run(); setShowTableMenu(false); }} className={styles.codeLangOption} type="button">插入 3×3 表格</button>
+              <button onClick={() => { editor.chain().focus().insertTable({ rows: 2, cols: 2, withHeaderRow: true }).run(); setShowTableMenu(false); }} className={styles.codeLangOption} type="button">插入 2×2 表格</button>
+              <button onClick={() => { editor.chain().focus().insertTable({ rows: 4, cols: 5, withHeaderRow: true }).run(); setShowTableMenu(false); }} className={styles.codeLangOption} type="button">插入 4×5 表格</button>
+              {editor.isActive('table') && (
+                <>
+                  <hr style={{ margin: '4px 0', border: 'none', borderTop: '1px solid #eee' }} />
+                  <button onClick={() => { editor.chain().focus().addColumnAfter().run(); setShowTableMenu(false); }} className={styles.codeLangOption} type="button">右侧添加列</button>
+                  <button onClick={() => { editor.chain().focus().addRowAfter().run(); setShowTableMenu(false); }} className={styles.codeLangOption} type="button">下方添加行</button>
+                  <button onClick={() => { editor.chain().focus().deleteColumn().run(); setShowTableMenu(false); }} className={styles.codeLangOption} type="button">删除当前列</button>
+                  <button onClick={() => { editor.chain().focus().deleteRow().run(); setShowTableMenu(false); }} className={styles.codeLangOption} type="button">删除当前行</button>
+                  <button onClick={() => { editor.chain().focus().deleteTable().run(); setShowTableMenu(false); }} className={styles.codeLangOption} type="button">删除整个表格</button>
+                </>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* 编辑器内容 */}

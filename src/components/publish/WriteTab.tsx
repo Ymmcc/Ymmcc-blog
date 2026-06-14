@@ -199,7 +199,7 @@ export default function WriteTab({
     setTimeout(() => setStatusMsg(null), 2000);
   };
 
-  // 图片上传处理：有 Token 直接上传，没有 Token 先用 base64 占位，发布时再上传
+  // 图片上传处理：始终先用 base64 显示（编辑器即时可见），发布时再上传到 GitHub
   const handleImageUpload = useCallback(async (file: File): Promise<string | null> => {
     try {
       const reader = new FileReader();
@@ -207,31 +207,15 @@ export default function WriteTab({
         reader.onload = async (e) => {
           const base64Raw = e.target?.result as string;
 
-          // 先压缩图片（减小 60-80% 体积）
+          // 压缩图片（减小 60-80% 体积）
           setStatusMsg({ type: 'success', text: '正在压缩图片...' });
           const base64 = await compressImage(base64Raw, 1600, 0.8).catch(() => base64Raw);
 
-          // 没有 Token 时，先用 base64 占位，发布时会自动上传替换
-          if (!githubToken) {
-            setStatusMsg({ type: 'success', text: '图片已插入（已压缩），发布时会自动上传到 GitHub' });
-            setTimeout(() => setStatusMsg(null), 2000);
-            resolve(base64);
-            return;
-          }
-
-          // 从实际压缩结果检测图片格式（compressImage 始终输出 JPEG）
-          const actualFormat = (base64.match(/^data:image\/(\w+);/)?.[1] || 'jpeg').replace('jpeg', 'jpg');
-          const safeBaseName = file.name.replace(/\.[^.]+$/, '').replace(/[^a-zA-Z0-9._-]/g, '_');
-          const filename = `${Date.now()}-${safeBaseName}.${actualFormat}`;
-          try {
-            const url = await uploadImage(githubToken, filename, base64);
-            setStatusMsg({ type: 'success', text: '图片上传成功' });
-            setTimeout(() => setStatusMsg(null), 2000);
-            resolve(url);
-          } catch (err) {
-            setStatusMsg({ type: 'error', text: err instanceof Error ? err.message : '图片上传失败' });
-            reject(err);
-          }
+          // 始终用 base64 返回，让编辑器立即显示图片
+          // 发布时 uploadInlineImages 会自动上传到 GitHub 并替换为线上 URL
+          setStatusMsg({ type: 'success', text: '图片已插入（已压缩），发布时会自动上传到 GitHub' });
+          setTimeout(() => setStatusMsg(null), 2000);
+          resolve(base64);
         };
         reader.onerror = () => reject(new Error('读取文件失败'));
         reader.readAsDataURL(file);
@@ -239,7 +223,7 @@ export default function WriteTab({
     } catch {
       return null;
     }
-  }, [githubToken]);
+  }, []);
 
   // 上传内容中的 base64 图片到 GitHub，替换为线上 URL
   const uploadInlineImages = async (html: string, token: string): Promise<string> => {
