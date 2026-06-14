@@ -139,3 +139,119 @@
 .itemDot {
   font-size: 8px;
 }
+
+/* ==================== 平板适配 ==================== */
+@media screen and (max-width: 1024px) {
+  .grid {
+    gap: 20px;
+  }
+
+  .categoryCard {
+    padding: 24px;
+  }
+}
+
+/* ==================== 移动端适配 ==================== */
+@media screen and (max-width: 768px) {
+  .explorePage {
+    padding: 80px 16px 40px;
+  }
+
+  .header {
+    margin-bottom: 32px;
+  }
+
+  .header h1 {
+    font-size: 1.75rem;
+  }
+
+  .header p {
+    font-size: 0.95rem;
+  }
+
+  .grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .categoryCard {
+    padding: 20px;
+    border-radius: 14px;
+  }
+
+  .categoryCard:hover {
+    transform: translateY(-4px) scale(1.01);
+  }
+
+  .cardHeader {
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  .cardIcon {
+    font-size: 36px;
+  }
+
+  .cardTitle {
+    font-size: 1.25rem;
+  }
+
+  .cardDescription {
+    font-size: 0.85rem;
+  }
+
+  .itemLink {
+    padding: 8px 10px;
+    font-size: 0.9rem;
+  }
+}
+
+/* ==================== 小屏手机适配 ==================== */
+@media screen and (max-width: 480px) {
+  .explorePage {
+    padding: 70px 12px 32px;
+  }
+
+  .header {
+    margin-bottom: 24px;
+  }
+
+  .header h1 {
+    font-size: 1.5rem;
+  }
+
+  .header p {
+    font-size: 0.85rem;
+  }
+
+  .categoryCard {
+    padding: 16px;
+    border-radius: 12px;
+  }
+
+  .cardHeader {
+    gap: 10px;
+  }
+
+  .cardIcon {
+    font-size: 32px;
+  }
+
+  .cardTitle {
+    font-size: 1.1rem;
+  }
+
+  .cardDescription {
+    font-size: 0.8rem;
+  }
+
+  .itemLink {
+    padding: 8px;
+    font-size: 0.85rem;
+    gap: 8px;
+  }
+
+  .itemDot {
+    font-size: 6px;
+  }
+}

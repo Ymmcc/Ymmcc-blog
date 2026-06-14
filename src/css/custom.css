@@ -1252,6 +1252,111 @@ div[class*="language-"]::before {
   }
 }
 
+/* ==================== 平板适配 (1024px) ==================== */
+@media screen and (max-width: 1024px) {
+  .navbar__link {
+    font-size: 0.9rem;
+    padding: 6px 10px;
+  }
+
+  .footer {
+    padding: 48px 24px 32px;
+  }
+}
+
+/* ==================== 移动端文档页面优化 ==================== */
+@media screen and (max-width: 768px) {
+  /* 侧边栏 TOC 在移动端适当缩小 */
+  .sidebar-toc {
+    margin-left: 12px;
+    padding-left: 10px;
+  }
+
+  .sidebar-toc-item {
+    font-size: 0.82rem;
+    padding: 3px 0;
+  }
+
+  .sidebar-toc-item--level-3 {
+    margin-left: 8px;
+  }
+
+  .sidebar-toc-item--level-4 {
+    margin-left: 16px;
+  }
+
+  /* 文档内容区优化 */
+  .markdown h1 {
+    font-size: 1.75rem;
+  }
+
+  .markdown h2 {
+    font-size: 1.4rem;
+  }
+
+  .markdown h3 {
+    font-size: 1.2rem;
+  }
+
+  .markdown p,
+  .markdown li {
+    font-size: 0.95rem;
+    line-height: 1.75;
+  }
+
+  .markdown pre {
+    font-size: 0.82rem;
+    padding: 12px;
+    border-radius: 8px;
+  }
+
+  .markdown :not(pre) > code {
+    font-size: 84%;
+    padding: 1px 4px;
+  }
+
+  .markdown blockquote {
+    padding: 10px 14px;
+    margin: 12px 0;
+  }
+
+  .markdown table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* 页脚移动端 */
+  .footer__title {
+    font-size: 0.9rem;
+  }
+
+  .footer__link-item {
+    font-size: 0.85rem;
+  }
+
+  .footer__copyright {
+    font-size: 0.8rem;
+  }
+}
+
+/* ==================== 小屏手机优化 ==================== */
+@media screen and (max-width: 480px) {
+  .navbar__title {
+    font-size: 1.1rem;
+  }
+
+  .markdown pre {
+    font-size: 0.78rem;
+    padding: 10px;
+  }
+
+  .markdown img {
+    max-width: 100%;
+    height: auto;
+  }
+}
+
 /* ==================== 选择高亮 ==================== */
 ::selection {
   background: hsla(var(--color-primary-hue), 85%, 65%, 0.3);
