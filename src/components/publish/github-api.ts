@@ -290,11 +290,11 @@ export function optimizeImageTags(html: string): string {
 }
 
 // 将 Markdown 中的 GitHub 原始图片链接替换为 Docusaurus 本地路径
-// Docusaurus 中 static/ 目录的文件可直接通过 / 访问
+// 站点部署在子目录 /Ymmcc-blog/ 下，图片路径必须带前缀
 export function convertImageUrlToCDN(markdown: string): string {
   return markdown.replace(
     new RegExp(`${RAW_BASE.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/static/img/uploads/`, 'g'),
-    `/img/uploads/`
+    `/Ymmcc-blog/img/uploads/`
   );
 }
 
