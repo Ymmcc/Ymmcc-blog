@@ -1,5 +1,6 @@
 import { GitHubFile, ArticleMeta, SeriesArticle, SeriesInfo } from './types';
 import TurndownService from 'turndown';
+import { marked } from 'marked';
 
 const REPO_OWNER = 'Ymmcc';
 const REPO_NAME = 'Ymmcc-blog';
@@ -311,6 +312,19 @@ function fixBoldCJK(markdown: string): string {
     /\*\*(.+?)\*\*(?=[一-鿿㐀-䶿＀-￯　-〿])/g,
     '**$1** '
   );
+}
+
+// Markdown → HTML 转换（用于编辑已发布文章时加载到 TipTap 编辑器）
+export function markdownToHtml(markdown: string): string {
+  // 配置 marked：启用 GFM、换行符转 <br>
+  marked.setOptions({
+    gfm: true,
+    breaks: true,
+  });
+  const result = marked.parse(markdown);
+  // marked.parse 可能返回 string | Promise<string>，同步场景下取 string
+  if (typeof result === 'string') return result;
+  return markdown; // fallback：如果异步则返回原 markdown
 }
 
 // 将标签字符串转为数组（兼容中文逗号、顿号）

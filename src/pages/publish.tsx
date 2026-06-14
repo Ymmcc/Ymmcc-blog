@@ -4,6 +4,7 @@ import gsap from 'gsap';
 import styles from './publish.module.css';
 import { TabType, EditMode, ArticleData, Draft, defaultArticleData } from '../components/publish/types';
 import { draftToArticleData } from '../components/publish/storage';
+import { markdownToHtml } from '../components/publish/github-api';
 import PasswordVerify from '../components/publish/PasswordVerify';
 import WriteTab from '../components/publish/WriteTab';
 import DraftsTab from '../components/publish/DraftsTab';
@@ -42,11 +43,14 @@ export default function PublishPage() {
     const titleMatch = content.match(/^#\s+(.+)/m);
     const title = titleMatch ? titleMatch[1] : '';
 
+    // 将 Markdown 转为 HTML，让 TipTap 富文本编辑器正确渲染
+    const htmlContent = markdownToHtml(content);
+
     setEditMode({ type: 'article', sha, path });
     setEditData({
       ...defaultArticleData,
       title,
-      markdownContent: content
+      markdownContent: htmlContent
     });
     setEditSha(sha);
     setEditPath(path);
@@ -61,6 +65,9 @@ export default function PublishPage() {
     articleTitle: string,
     articleContent: string
   ) => {
+    // 将 Markdown 转为 HTML，让 TipTap 富文本编辑器正确渲染
+    const htmlContent = markdownToHtml(articleContent);
+
     setEditMode({
       type: 'series-article',
       sha: seriesSha,
@@ -70,7 +77,7 @@ export default function PublishPage() {
     });
     setEditData({
       ...defaultArticleData,
-      markdownContent: articleContent,
+      markdownContent: htmlContent,
     });
     setEditSha(seriesSha);
     setEditPath(seriesPath);
