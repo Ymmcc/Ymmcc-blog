@@ -8,6 +8,8 @@ export interface ArticleData {
   tags: string;
   description: string;
   markdownContent: string;
+  // 编辑时保留原始值，避免打乱目录顺序
+  sidebar_position?: number;  // 编辑已有文章时传入，发布时保留
   // 系列模式字段
   seriesTitle?: string;   // 系列标题（如"数据库"）
   articleTitle?: string;  // 子文章标题（如"SQL语句"）
@@ -61,6 +63,7 @@ export interface ArticleMeta {
   date: string;
   tags: string[];
   description: string;
+  sidebar_position?: number;
 }
 
 // Tab 类型

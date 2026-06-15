@@ -290,7 +290,7 @@ export default function WriteTab({
             tags: articleData.tags,
             description: articleData.description,
             markdownContent: optimizedHtml,
-          });
+          }, articleData.sidebar_position);
           await upsertFile(token, editingPath!, content, `feat: 更新系列文章 "${seriesTitle}" - ${articleTitle}`, editingSha);
           localFilePath = editingPath!;
           localContent = content;
@@ -375,7 +375,7 @@ export default function WriteTab({
         onPublishSuccess();
       } else {
         // === 单篇文章发布 ===
-        const content = generateMarkdown(processedData);
+        const content = generateMarkdown(processedData, articleData.sidebar_position);
         const path = editingPath || getFilePath(articleData.category, articleData.title);
         await upsertFile(token, path, content, `feat: ${editingSha ? '更新' : '添加'}文章 "${articleData.title}"`, editingSha);
 

@@ -50,8 +50,10 @@ export function parseFrontmatter(content: string): ArticleMeta {
   const tagsMatch = fm.match(/tags:\s*\[(.+)\]/)?.[1];
   const tags = tagsMatch ? tagsMatch.split(',').map(t => t.trim()) : [];
   const description = fm.match(/description:\s*(.+)/)?.[1]?.trim() || '';
+  const sidebarPosMatch = fm.match(/sidebar_position:\s*(\d+)/);
+  const sidebar_position = sidebarPosMatch ? parseInt(sidebarPosMatch[1]) : undefined;
 
-  return { title, date, tags, description };
+  return { title, date, tags, description, sidebar_position };
 }
 
 // 判断是否为系列文章
@@ -291,11 +293,11 @@ export function optimizeImageTags(html: string): string {
 }
 
 // 将 Markdown 中的 GitHub 原始图片链接替换为 Docusaurus 本地路径
-// 站点部署在子目录 /Ymmcc-blog/ 下，图片路径必须带前缀
+// 图片位于 static/img/uploads/，Docusaurus 构建时会将 /img/uploads/ 映射到 static 目录
 export function convertImageUrlToCDN(markdown: string): string {
   return markdown.replace(
     new RegExp(`${RAW_BASE.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/static/img/uploads/`, 'g'),
-    `/Ymmcc-blog/img/uploads/`
+    `/img/uploads/`
   );
 }
 
@@ -337,14 +339,23 @@ function parseTags(tagsStr: string): string[] {
 }
 
 // 生成 Markdown 内容（将 HTML 转换为 Markdown）
+// originalSidebarPosition: 编辑已有文章时传入，保留原始排序
 export function generateMarkdown(
-  data: { title: string; tags: string; description: string; markdownContent: string }
+  data: { title: string; tags: string; description: string; markdownContent: string },
+  originalSidebarPosition?: number
 ): string {
   const now = new Date();
   const date = now.toISOString().split('T')[0];
   const tagsArray = parseTags(data.tags);
-  const hhmm = `${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}`;
-  const sidebarPos = parseInt(date.replace(/-/g, '') + hhmm, 10);
+
+  // 编辑时保留原始 sidebar_position，新建时用当前时间生成
+  let sidebarPos: number;
+  if (originalSidebarPosition) {
+    sidebarPos = originalSidebarPosition;
+  } else {
+    const hhmm = `${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}`;
+    sidebarPos = parseInt(date.replace(/-/g, '') + hhmm, 10);
+  }
 
   // 将富文本 HTML 转换为 Markdown
   const markdownBody = fixBoldCJK(convertImageUrlToCDN(turndownService.turndown(data.markdownContent)));
@@ -354,7 +365,7 @@ title: ${data.title}
 sidebar_position: ${sidebarPos}
 date: ${date}
 tags: [${tagsArray.join(', ')}]
-description: ${data.description}
+description: ${data.description || ''}
 ---
 
 ${markdownBody}
@@ -494,6 +505,7 @@ ${body.trim()}
 // 生成独立文件系列文章的 Markdown（非 <details> 格式）
 // 每个文章是一个独立的 .md 文件，通过 series: <系列名> 关联
 // sidebar_position 使用日期数字（如 20260610），实现按发布时间排序
+// originalSidebarPosition: 编辑已有文章时传入，保留原始排序
 export function generatePerFileSeriesMarkdown(
   data: {
     seriesTitle: string;
@@ -501,13 +513,21 @@ export function generatePerFileSeriesMarkdown(
     tags: string;
     description: string;
     markdownContent: string;
-  }
+  },
+  originalSidebarPosition?: number
 ): string {
   const now = new Date();
   const date = now.toISOString().split('T')[0];
   const tagsArray = parseTags(data.tags);
-  const hhmm = `${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}`;
-  const sidebarPos = parseInt(date.replace(/-/g, '') + hhmm, 10);
+
+  // 编辑时保留原始 sidebar_position，新建时用当前时间生成
+  let sidebarPos: number;
+  if (originalSidebarPosition) {
+    sidebarPos = originalSidebarPosition;
+  } else {
+    const hhmm = `${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}`;
+    sidebarPos = parseInt(date.replace(/-/g, '') + hhmm, 10);
+  }
 
   // 将富文本 HTML 转换为 Markdown，并将图片链接转为 CDN 加速
   const markdownBody = fixBoldCJK(convertImageUrlToCDN(turndownService.turndown(data.markdownContent)));
@@ -517,7 +537,7 @@ title: ${data.title}
 sidebar_position: ${sidebarPos}
 date: ${date}
 tags: [${tagsArray.join(', ')}]
-description: ${data.description}
+description: ${data.description || ''}
 series: ${data.seriesTitle}
 ---
 

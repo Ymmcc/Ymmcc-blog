@@ -4,7 +4,7 @@ import gsap from 'gsap';
 import styles from './publish.module.css';
 import { TabType, EditMode, ArticleData, Draft, defaultArticleData } from '../components/publish/types';
 import { draftToArticleData } from '../components/publish/storage';
-import { markdownToHtml } from '../components/publish/github-api';
+import { markdownToHtml, parseFrontmatter } from '../components/publish/github-api';
 import PasswordVerify from '../components/publish/PasswordVerify';
 import WriteTab from '../components/publish/WriteTab';
 import DraftsTab from '../components/publish/DraftsTab';
@@ -39,9 +39,11 @@ export default function PublishPage() {
 
   // 从文章管理编辑
   const handleEditArticle = (content: string, sha: string, path: string) => {
-    // 从内容中提取元信息
-    const titleMatch = content.match(/^#\s+(.+)/m);
-    const title = titleMatch ? titleMatch[1] : '';
+    // 从 frontmatter 提取完整元信息
+    const meta = parseFrontmatter(content);
+    const title = meta.title || content.match(/^#\s+(.+)/m)?.[1] || '';
+    const categoryMatch = path.match(/^docs\/([^/]+)\//);
+    const category = categoryMatch ? categoryMatch[1] : 'frontend';
 
     // 将 Markdown 转为 HTML，让 TipTap 富文本编辑器正确渲染
     const htmlContent = markdownToHtml(content);
@@ -50,6 +52,10 @@ export default function PublishPage() {
     setEditData({
       ...defaultArticleData,
       title,
+      category,
+      tags: meta.tags.join(', '),
+      description: meta.description,
+      sidebar_position: meta.sidebar_position,
       markdownContent: htmlContent
     });
     setEditSha(sha);
