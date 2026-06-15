@@ -171,6 +171,8 @@ export default function RichTextEditor({ content, onChange, onImageUpload }: Pro
 
   const handlePaste = useCallback((e: React.ClipboardEvent) => {
     const items = Array.from(e.clipboardData.items);
+
+    // 粘贴图片
     const imageItem = items.find(item => item.type.startsWith('image/'));
     if (imageItem) {
       e.preventDefault();
@@ -179,18 +181,14 @@ export default function RichTextEditor({ content, onChange, onImageUpload }: Pro
       return;
     }
 
-    // 检测粘贴的 HTML 表格
-    const htmlItem = items.find(item => item.type === 'text/html');
-    if (htmlItem) {
-      htmlItem.getAsString((html) => {
-        if (/<table[\s>]/i.test(html) && editor) {
-          e.preventDefault();
-          // 解析粘贴的 HTML 表格并插入
-          parseAndInsertTable(html);
-        }
-      });
+    // 同步检测粘贴的 HTML 表格（getData 是同步的，可立即 preventDefault）
+    const html = e.clipboardData.getData('text/html');
+    if (html && /<table[\s>]/i.test(html) && editor) {
+      e.preventDefault();
+      parseAndInsertTable(html);
+      return;
     }
-  }, [handleFileUpload, editor]);
+  }, [handleFileUpload, editor, parseAndInsertTable]);
 
   // 常用编程语言列表
   const codeLanguages = [
