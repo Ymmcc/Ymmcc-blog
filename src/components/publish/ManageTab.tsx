@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import gsap from 'gsap';
 import styles from '../../pages/publish.module.css';
 import { GitHubFile, ArticleMeta, SeriesInfo } from './types';
-import { fetchFileList, fetchFileContent, parseFrontmatter, deleteFile, isSeriesContent, parseSeriesContent, upsertFile } from './github-api';
+import { fetchFileList, fetchFileContent, parseFrontmatter, deleteFile, isSeriesContent, parseSeriesContent, upsertFile, moveDirectory, toSlug, removeBoldCJKSpaces } from './github-api';
 
 interface Props {
   token: string;
@@ -30,6 +30,8 @@ export default function ManageTab({ token, onTokenChange, onEditArticle, onEditS
   const [statusMsg, setStatusMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [expandedSeries, setExpandedSeries] = useState<string | null>(null);
   const [seriesList, setSeriesList] = useState<SeriesItem[]>([]);
+  const [renamingSeries, setRenamingSeries] = useState<string | null>(null);
+  const [newSeriesName, setNewSeriesName] = useState('');
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -172,7 +174,9 @@ export default function ManageTab({ token, onTokenChange, onEditArticle, onEditS
     try {
       const { content, sha } = await fetchFileContent(token, article.path);
       // 去掉 frontmatter，只保留正文
-      const body = content.replace(/^---\n[\s\S]*?\n---\n?/, '');
+      let body = content.replace(/^---\n[\s\S]*?\n---\n?/, '');
+      // 移除 fixBoldCJK 添加的额外空格，避免编辑回显时出现多余空格
+      body = removeBoldCJKSpaces(body);
       onEditArticle(body, sha, article.path);
     } catch (err) {
       setStatusMsg({ type: 'error', text: '加载文章内容失败' });
@@ -191,6 +195,57 @@ export default function ManageTab({ token, onTokenChange, onEditArticle, onEditS
       setTimeout(() => setStatusMsg(null), 3000);
     } catch (err) {
       setStatusMsg({ type: 'error', text: err instanceof Error ? err.message : '删除失败' });
+    }
+  };
+
+  // 重命名系列目录
+  const handleRenameSeries = async (series: SeriesItem) => {
+    if (!token || !newSeriesName.trim()) {
+      setStatusMsg({ type: 'error', text: '请输入新的系列名称' });
+      return;
+    }
+
+    // 提取旧目录路径（从第一个文章的路径中获取）
+    const firstArticle = series.info.articles[0];
+    if (!firstArticle?.filePath) {
+      setStatusMsg({ type: 'error', text: '无法获取系列目录路径' });
+      return;
+    }
+
+    // 计算旧目录路径：docs/algorithm/old-slug/
+    const oldDirPath = firstArticle.filePath.substring(0, firstArticle.filePath.lastIndexOf('/'));
+    const category = oldDirPath.split('/')[1]; // 获取分类（如 algorithm）
+
+    // 计算新目录路径
+    const newSlug = toSlug(newSeriesName);
+    const newDirPath = `docs/${category}/${newSlug}`;
+
+    if (oldDirPath === newDirPath) {
+      setStatusMsg({ type: 'error', text: '新旧目录路径相同，无需重命名' });
+      setRenamingSeries(null);
+      return;
+    }
+
+    setLoading(true);
+    setStatusMsg({ type: 'success', text: `正在重命名系列目录...` });
+
+    try {
+      await moveDirectory(token, oldDirPath, newDirPath);
+
+      setStatusMsg({
+        type: 'success',
+        text: `✅ 系列目录已重命名: ${oldDirPath} -> ${newDirPath}`
+      });
+
+      setRenamingSeries(null);
+      setNewSeriesName('');
+
+      // 刷新列表
+      loadArticles();
+    } catch (err) {
+      setStatusMsg({ type: 'error', text: err instanceof Error ? err.message : '重命名失败' });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -380,25 +435,66 @@ export default function ManageTab({ token, onTokenChange, onEditArticle, onEditS
                 </div>
                 <div className={styles.seriesHeaderActions}>
                   <span className={styles.articleDate}>{series.info.date}</span>
-                  <button
-                    className={styles.editBtn}
-                    onClick={async (e) => {
-                      e.stopPropagation();
-                      if (!token) {
-                        setStatusMsg({ type: 'error', text: '请先输入 GitHub Token' });
-                        return;
-                      }
-                      try {
-                        const { content, sha } = await fetchFileContent(token, series.info.path);
-                        const body = content.replace(/^---\n[\s\S]*?\n---\n?/, '');
-                        onEditArticle(body, sha, series.info.path);
-                      } catch {
-                        setStatusMsg({ type: 'error', text: '加载系列文件失败' });
-                      }
-                    }}
-                  >
-                    编辑系列
-                  </button>
+                  {renamingSeries === series.info.path ? (
+                    <div className={styles.renameActions} onClick={e => e.stopPropagation()}>
+                      <input
+                        type="text"
+                        value={newSeriesName}
+                        onChange={e => setNewSeriesName(e.target.value)}
+                        placeholder="输入新的系列名称"
+                        className={styles.renameInput}
+                        autoFocus
+                      />
+                      <button
+                        className={styles.confirmDeleteBtn}
+                        onClick={() => handleRenameSeries(series)}
+                        disabled={loading}
+                      >
+                        确认
+                      </button>
+                      <button
+                        className={styles.cancelBtn}
+                        onClick={() => {
+                          setRenamingSeries(null);
+                          setNewSeriesName('');
+                        }}
+                      >
+                        取消
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <button
+                        className={styles.editBtn}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setRenamingSeries(series.info.path);
+                          setNewSeriesName(series.info.title);
+                        }}
+                      >
+                        重命名
+                      </button>
+                      <button
+                        className={styles.editBtn}
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          if (!token) {
+                            setStatusMsg({ type: 'error', text: '请先输入 GitHub Token' });
+                            return;
+                          }
+                          try {
+                            const { content, sha } = await fetchFileContent(token, series.info.path);
+                            const body = content.replace(/^---\n[\s\S]*?\n---\n?/, '');
+                            onEditArticle(body, sha, series.info.path);
+                          } catch {
+                            setStatusMsg({ type: 'error', text: '加载系列文件失败' });
+                          }
+                        }}
+                      >
+                        编辑系列
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
 

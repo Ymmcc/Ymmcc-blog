@@ -1,6 +1,7 @@
 import { GitHubFile, ArticleMeta, SeriesArticle, SeriesInfo } from './types';
 import TurndownService from 'turndown';
 import { marked } from 'marked';
+import { pinyin } from 'pinyin-pro';
 
 const REPO_OWNER = 'Ymmcc';
 const REPO_NAME = 'Ymmcc-blog';
@@ -222,6 +223,42 @@ export async function deleteFile(token: string, path: string, sha: string): Prom
   }
 }
 
+// 移动目录（重命名）
+// 由于 GitHub API 不支持直接重命名目录，需要：创建新目录 -> 复制文件 -> 删除旧文件
+export async function moveDirectory(
+  token: string,
+  oldDirPath: string,
+  newDirPath: string
+): Promise<void> {
+  // 1. 获取旧目录中的所有文件
+  const files = await fetchFileList(token, oldDirPath);
+
+  if (files.length === 0) {
+    throw new Error(`目录 ${oldDirPath} 中没有找到文件`);
+  }
+
+  // 2. 读取每个文件的内容并在新目录中创建
+  for (const file of files) {
+    const { content, sha } = await fetchFileContent(token, file.path);
+
+    // 计算新文件路径：将旧目录路径替换为新目录路径
+    const newFilePath = file.path.replace(oldDirPath, newDirPath);
+
+    // 在新目录中创建文件
+    await upsertFile(
+      token,
+      newFilePath,
+      content,
+      `feat: 移动文件 ${file.path} 到 ${newFilePath}`
+    );
+  }
+
+  // 3. 删除旧目录中的所有文件
+  for (const file of files) {
+    await deleteFile(token, file.path, file.sha);
+  }
+}
+
 // 上传图片到 GitHub 仓库（base64Data 已经是 base64 编码，直接发送）
 export async function uploadImage(token: string, filename: string, base64Data: string): Promise<string> {
   const path = `static/img/uploads/${filename}`;
@@ -307,12 +344,38 @@ export function convertImageUrlToCDN(markdown: string): string {
 // 当 `**` 前是中文标点（如 `：`、`。`）、后是中文字符时，它不被认为是右边界，
 // 因此无法闭合粗体，导致整个 `**text**` 被当作纯文本渲染。
 //
-// 修复：在闭合 `**` 和中文字符之间插入一个空格，使其正常解析。
-// 对于中文字符，额外空格不影响视觉呈现。
+// 修复内容：
+// 1. 移除粗体标记内的多余空格（如 `** text**` -> `**text**`）
+// 2. 在闭合 `**` 和中文字符之间插入一个空格，使其正常解析
+//
+// 注意：此函数仅在发布时调用，编辑回显时不应调用，避免重复添加空格
 function fixBoldCJK(markdown: string): string {
-  return markdown.replace(
+  let result = markdown;
+
+  // 1. 修复粗体标记内的多余空格
+  // 匹配 ** text** 或 **text ** 或 ** text ** 这种格式
+  result = result.replace(/\*\*\s+(.+?)\s*\*\*/g, (match, content) => {
+    // 移除内容两端的空格
+    const cleanContent = content.trim();
+    return `**${cleanContent}**`;
+  });
+
+  // 2. 在闭合 ** 和中文字符之间插入空格（原有功能）
+  result = result.replace(
     /\*\*(.+?)\*\*(?=[一-鿿㐀-䶿＀-￯　-〿])/g,
     '**$1** '
+  );
+
+  return result;
+}
+
+// 移除 fixBoldCJK 添加的额外空格（用于编辑回显时）
+// 当编辑已发布的文章时，需要移除之前添加的空格，避免重复添加
+export function removeBoldCJKSpaces(markdown: string): string {
+  // 移除 **text** 后面紧跟的空格（如果后面是中文字符）
+  return markdown.replace(
+    /\*\*(.+?)\*\*\s(?=[一-鿿㐀-䶿＀-￯　-〿])/g,
+    '**$1**'
   );
 }
 
@@ -374,51 +437,21 @@ ${markdownBody}
   return md;
 }
 
-// 简单拼音映射表（常用字首字母缩写）
-// 用于纯中文标题时生成有意义的 slug，避免全部变成 post-xxx
-const PINYIN_MAP: Record<string, string> = {
-  '并': 'bing', '发': 'fa', '事': 'shi', '务': 'wu', '隔': 'ge', '离': 'li',
-  '三': 'san', '层': 'ceng', '模': 'mo', '式': 'shi', '与': 'yu', '二': 'er',
-  '级': 'ji', '映': 'ying', '射': 'she', '完': 'wan', '整': 'zheng', '性': 'xing',
-  '规': 'gui', '则': 'ze', '数': 'shu', '据': 'ju', '库': 'ku', '基': 'ji',
-  '础': 'chu', '结': 'jie', '构': 'gou', '算': 'suan', '法': 'fa',
-  '论': 'lun', '文': 'wen', '学': 'xue', '物': 'wu', '理': 'li', '化': 'hua',
-  '生': 'sheng', '入': 'ru', '门': 'men', '指': 'zhi', '南': 'nan',
-  '简': 'jian', '介': 'jie', '总': 'zong', '实': 'shi', '例': 'li',
-  '概': 'gai', '念': 'nian', '具': 'ju', '体': 'ti', '场': 'chang', '景': 'jing',
-  '描': 'miao', '述': 'shu', '于': 'yu', '语': 'yu', '言': 'yan', '句': 'ju',
-  '相': 'xiang', '关': 'guan', '知': 'zhi', '识': 'shi',
-  '创': 'chuang', '建': 'jian', '新': 'xin', '增': 'zeng', '删': 'shan',
-  '改': 'gai', '查': 'cha', '添': 'tian', '加': 'jia', '编': 'bian', '辑': 'ji',
-  '优': 'you', '提': 'ti', '升': 'sheng', '速': 'su',
-  '第': 'di', '一': 'yi', '篇': 'pian', '章': 'zhang', '节': 'jie',
-  '使': 'shi', '用': 'yong', '教': 'jiao', '程': 'cheng',
-  '初': 'chu', '中': 'zhong', '高': 'gao', '阶': 'jie', '技': 'ji', '巧': 'qiao',
-  '代': 'dai', '码': 'ma', '项': 'xiang', '目': 'mu', '框': 'kuang', '架': 'jia',
-  '前': 'qian', '端': 'duan', '后': 'hou', '服': 'fu',
-  '页': 'ye', '面': 'mian', '组': 'zu', '件': 'jian', '路': 'lu', '由': 'you',
-  '部': 'bu', '署': 'shu', '测': 'ce', '试': 'shi', '调': 'tiao',
-  '错': 'cuo', '误': 'wu', '异': 'yi', '常': 'chang',
-  '处': 'chu', '安': 'an', '全': 'quan', '权': 'quan', '限': 'xian',
-  '验': 'yan', '证': 'zheng', '登': 'deng', '录': 'lu', '注': 'zhu', '册': 'ce',
-  '户': 'hu', '管': 'guan', '配': 'pei', '置': 'zhi',
-};
-
 // 将标题转换为纯英文 slug
-// 保留字母数字，中文转简单拼音，其余转为连字符
+// 使用 pinyin-pro 库进行完整的中文转拼音，确保所有中文字符都能正确转换
 export function toSlug(title: string): string {
   let slug = title.toLowerCase();
 
-  // 逐字符处理：中文转拼音，非中文保留
-  let result = '';
-  for (const char of slug) {
-    if (/[a-z0-9]/.test(char)) {
-      result += char;
-    } else if (PINYIN_MAP[char]) {
-      result += PINYIN_MAP[char];
-    }
-    // 其他字符（空格、标点等）忽略，后面用连字符统一替换
-  }
+  // 使用 pinyin-pro 将中文转换为拼音（不带声调，用连字符分隔）
+  // 对于非中文字符（字母、数字等），pinyin-pro 会原样保留
+  const pinyinResult = pinyin(slug, {
+    toneType: 'none',      // 不带声调
+    type: 'array',         // 返回数组
+    nonZh: 'consecutive',  // 非中文字符连续保留
+  });
+
+  // 拼接结果，将拼音用连字符连接
+  let result = pinyinResult.join('-');
 
   // 将连续的非字母数字替换为连字符
   result = result.replace(/[^a-z0-9]+/g, '-');

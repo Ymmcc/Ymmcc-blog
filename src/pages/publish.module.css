@@ -2505,6 +2505,40 @@ select.formInput {
   flex-shrink: 0;
 }
 
+.renameActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.renameInput {
+  padding: 6px 12px;
+  border: 2px solid #6366f1;
+  border-radius: 8px;
+  font-size: 14px;
+  background: white;
+  color: #1e293b;
+  min-width: 200px;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.renameInput:focus {
+  border-color: #4f46e5;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+[data-theme='dark'] .renameInput {
+  background: #1e293b;
+  color: #e2e8f0;
+  border-color: #818cf8;
+}
+
+[data-theme='dark'] .renameInput:focus {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+}
+
 .seriesSubList {
   border-top: 1px solid #eef2ff;
   padding: 0;
