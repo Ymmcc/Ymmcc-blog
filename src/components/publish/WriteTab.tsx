@@ -353,6 +353,8 @@ export default function WriteTab({
             },
           }, null, 2);
           await upsertFile(token, categoryJsonPath, categoryJson, `feat: 添加系列分类 "${seriesTitle}"`);
+          // 同步 _category_.json 到本地（确保侧边栏显示中文标签而非拼音目录名）
+          await syncToLocal(categoryJsonPath, categoryJson);
           localFilePath = path;
           localContent = content;
         }
