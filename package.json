@@ -5,7 +5,7 @@
   "scripts": {
     "generate-data": "node scripts/generate-data.js",
     "docusaurus": "docusaurus",
-    "start": "npm run generate-data && docusaurus start",
+    "start": "node scripts/local-sync-server.mjs & npm run generate-data && docusaurus start",
     "start:sync": "node scripts/local-sync-server.mjs & npm run generate-data && docusaurus start",
     "sync-server": "node scripts/local-sync-server.mjs",
     "build": "npm run generate-data && docusaurus build",
