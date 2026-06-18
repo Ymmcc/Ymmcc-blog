@@ -15,11 +15,31 @@
 import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
+import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = path.resolve(__dirname, '..');
 const PORT = process.env.SYNC_PORT || 3456;
+
+// 防抖：连续多次同步只触发一次数据重新生成
+let regenerateTimer = null;
+function scheduleRegenerate() {
+  if (regenerateTimer) clearTimeout(regenerateTimer);
+  regenerateTimer = setTimeout(() => {
+    const child = spawn('node', ['scripts/generate-data.js'], {
+      cwd: PROJECT_ROOT,
+      stdio: 'inherit',
+    });
+    child.on('close', (code) => {
+      if (code === 0) {
+        console.log('[sync] ✓ 数据已重新生成，HMR 将自动刷新页面');
+      } else {
+        console.error(`[sync] ✗ 数据生成失败 (exit ${code})`);
+      }
+    });
+  }, 1000);
+}
 
 /**
  * 写入文件到本地 docs 目录
@@ -103,6 +123,8 @@ const server = http.createServer(async (req, res) => {
 
         const fullPath = writeLocalFile(filePath, content);
         console.log(`[sync] ✓ 已写入: ${fullPath}`);
+        // 自动重新生成 blog-data.json（防抖，发布系列文章时避免重复生成）
+        scheduleRegenerate();
         sendJson(res, 200, { success: true, path: fullPath });
       } catch (err) {
         console.error(`[sync] ✗ 错误: ${err.message}`);
