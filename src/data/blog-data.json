@@ -1,7 +1,7 @@
 {
   "stats": {
-    "notes": 14,
-    "codeSnippets": 35,
+    "notes": 17,
+    "codeSnippets": 42,
     "projects": 0
   },
   "recentNotes": [
@@ -115,6 +115,18 @@
         {
           "name": "接雨水",
           "link": "/docs/algorithm/shuang-zhi-zhen/post-mqfecwld"
+        },
+        {
+          "name": "合并两个有序数组",
+          "link": "/docs/algorithm/zhilizhi/bingshuzu"
+        },
+        {
+          "name": "找出字符串中第一个匹配项的下标",
+          "link": "/docs/algorithm/zhilizhi/zhao-chu-zi-fu-chuan-zhong-di-yi-ge-pi-pei-xiang-de-xia-biao"
+        },
+        {
+          "name": "交替合并字符串",
+          "link": "/docs/algorithm/zhilizhi/jiao-ti-he-bing-zi-fu-chuan"
         }
       ]
     },
@@ -184,6 +196,33 @@
       ]
     },
     {
+      "name": "双指针：分离指针",
+      "dirName": "algorithm",
+      "articles": [
+        {
+          "title": "合并两个有序数组",
+          "slug": "bingshuzu",
+          "path": "/docs/algorithm/zhilizhi/bingshuzu",
+          "sidebar_position": 202606172143,
+          "date": "2026-06-17"
+        },
+        {
+          "title": "找出字符串中第一个匹配项的下标",
+          "slug": "zhao-chu-zi-fu-chuan-zhong-di-yi-ge-pi-pei-xiang-de-xia-biao",
+          "path": "/docs/algorithm/zhilizhi/zhao-chu-zi-fu-chuan-zhong-di-yi-ge-pi-pei-xiang-de-xia-biao",
+          "sidebar_position": 202606182026,
+          "date": "2026-06-18"
+        },
+        {
+          "title": "交替合并字符串",
+          "slug": "jiao-ti-he-bing-zi-fu-chuan",
+          "path": "/docs/algorithm/zhilizhi/jiao-ti-he-bing-zi-fu-chuan",
+          "sidebar_position": 202606190014,
+          "date": "2026-06-19"
+        }
+      ]
+    },
+    {
       "name": "双指针：左右指针碰撞",
       "dirName": "algorithm",
       "articles": [
@@ -218,5 +257,5 @@
       ]
     }
   ],
-  "generatedAt": "2026-06-15T16:21:06.201Z"
+  "generatedAt": "2026-06-19T16:17:36.055Z"
 }
