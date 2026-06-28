@@ -34,6 +34,29 @@ sidebar_position: 1
 
 ---
 
+### Tlias 教学管理系统
+
+基于 Spring Boot 3 + Vue 3 的前后端分离教学管理系统，涵盖部门、员工、班级、学员等核心业务模块。
+
+**技术栈：**
+- Spring Boot 3
+- MyBatis
+- MySQL
+- Vue 3
+- Element Plus
+
+**主要功能：**
+- 员工管理（CRUD + 工作经历）
+- 班级管理（动态状态计算）
+- 学员管理（违纪处理）
+- 数据报表统计
+- JWT 认证
+- AOP 操作日志
+
+👉 [查看详细文档](./tlias.md)
+
+---
+
 ### 个人博客系统
 
 基于 Docusaurus 的学习博客，用于记录学习笔记和代码片段。
