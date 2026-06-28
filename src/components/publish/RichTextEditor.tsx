@@ -8,7 +8,13 @@ import { Table } from '@tiptap/extension-table';
 import { TableRow } from '@tiptap/extension-table-row';
 import { TableCell } from '@tiptap/extension-table-cell';
 import { TableHeader } from '@tiptap/extension-table-header';
+import TextAlign from '@tiptap/extension-text-align';
+import Color from '@tiptap/extension-color';
+import { TextStyle } from '@tiptap/extension-text-style';
+import Highlight from '@tiptap/extension-highlight';
 import ResizableImageExtension from './ResizableImageExtension';
+import { FontSize } from './extensions/FontSize';
+import ColorPicker from './ColorPicker';
 import styles from '../../pages/publish.module.css';
 
 const lowlight = createLowlight(common);
@@ -19,6 +25,18 @@ interface Props {
   onImageUpload?: (file: File) => Promise<string | null>;
 }
 
+// 字体大小选项
+const FONT_SIZES = [
+  { value: '12px', label: '12' },
+  { value: '14px', label: '14' },
+  { value: '16px', label: '16' },
+  { value: '18px', label: '18' },
+  { value: '20px', label: '20' },
+  { value: '24px', label: '24' },
+  { value: '28px', label: '28' },
+  { value: '32px', label: '32' },
+];
+
 export default function RichTextEditor({ content, onChange, onImageUpload }: Props) {
   const [showImageDialog, setShowImageDialog] = useState(false);
   const [imageUrl, setImageUrl] = useState('');
@@ -26,6 +44,9 @@ export default function RichTextEditor({ content, onChange, onImageUpload }: Pro
   const [isUploading, setIsUploading] = useState(false);
   const [showCodeLang, setShowCodeLang] = useState(false);
   const [showTableMenu, setShowTableMenu] = useState(false);
+  const [showTextColorPicker, setShowTextColorPicker] = useState(false);
+  const [showHighlightPicker, setShowHighlightPicker] = useState(false);
+  const [showFontSizeMenu, setShowFontSizeMenu] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const editor = useEditor({
@@ -54,6 +75,14 @@ export default function RichTextEditor({ content, onChange, onImageUpload }: Pro
       Placeholder.configure({
         placeholder: '在这里编写文章内容...',
       }),
+      // 新增扩展
+      TextAlign.configure({
+        types: ['heading', 'paragraph', 'tableCell', 'tableHeader'],
+      }),
+      Color,
+      TextStyle,
+      Highlight.configure({ multicolor: true }),
+      FontSize,
     ],
     content: content,
     onUpdate: ({ editor }) => {
@@ -69,7 +98,7 @@ export default function RichTextEditor({ content, onChange, onImageUpload }: Pro
   // 同步外部内容变化
   useEffect(() => {
     if (editor && content !== editor.getHTML()) {
-      editor.commands.setContent(content, false);
+      editor.commands.setContent(content, { emitUpdate: false });
     }
   }, [content, editor]);
 
@@ -213,6 +242,40 @@ export default function RichTextEditor({ content, onChange, onImageUpload }: Pro
   const wordCount = textContent.replace(/\s/g, '').length;
   const readTime = Math.max(1, Math.ceil(wordCount / 300));
 
+  // 获取当前字体大小
+  const getCurrentFontSize = () => {
+    if (!editor) return '16px';
+    const attrs = editor.getAttributes('textStyle');
+    return attrs.fontSize || '16px';
+  };
+
+  // 处理文字颜色选择
+  const handleTextColorSelect = (color: string) => {
+    if (!editor) return;
+    if (color) {
+      editor.chain().focus().setColor(color).run();
+    } else {
+      editor.chain().focus().unsetColor().run();
+    }
+  };
+
+  // 处理背景色选择
+  const handleHighlightSelect = (color: string) => {
+    if (!editor) return;
+    if (color) {
+      editor.chain().focus().toggleHighlight({ color }).run();
+    } else {
+      editor.chain().focus().unsetHighlight().run();
+    }
+  };
+
+  // 处理字体大小选择
+  const handleFontSizeSelect = (size: string) => {
+    if (!editor) return;
+    editor.chain().focus().setFontSize(size).run();
+    setShowFontSizeMenu(false);
+  };
+
   if (!editor) return null;
 
   return (
@@ -224,6 +287,7 @@ export default function RichTextEditor({ content, onChange, onImageUpload }: Pro
     >
       {/* 工具栏 */}
       <div className={styles.tiptapToolbar}>
+        {/* 文本格式 */}
         <button
           onClick={() => editor.chain().focus().toggleBold().run()}
           className={`${styles.tiptapBtn} ${editor.isActive('bold') ? styles.active : ''}`}
@@ -251,6 +315,7 @@ export default function RichTextEditor({ content, onChange, onImageUpload }: Pro
 
         <div className={styles.tiptapDivider} />
 
+        {/* 标题 */}
         <button
           onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
           className={`${styles.tiptapBtn} ${editor.isActive('heading', { level: 1 }) ? styles.active : ''}`}
@@ -278,6 +343,43 @@ export default function RichTextEditor({ content, onChange, onImageUpload }: Pro
 
         <div className={styles.tiptapDivider} />
 
+        {/* 文字对齐 */}
+        <button
+          onClick={() => editor.chain().focus().setTextAlign('left').run()}
+          className={`${styles.tiptapBtn} ${editor.isActive({ textAlign: 'left' }) ? styles.active : ''}`}
+          title="左对齐"
+          type="button"
+        >
+          ≡
+        </button>
+        <button
+          onClick={() => editor.chain().focus().setTextAlign('center').run()}
+          className={`${styles.tiptapBtn} ${editor.isActive({ textAlign: 'center' }) ? styles.active : ''}`}
+          title="居中对齐"
+          type="button"
+        >
+          ≡
+        </button>
+        <button
+          onClick={() => editor.chain().focus().setTextAlign('right').run()}
+          className={`${styles.tiptapBtn} ${editor.isActive({ textAlign: 'right' }) ? styles.active : ''}`}
+          title="右对齐"
+          type="button"
+        >
+          ≡
+        </button>
+        <button
+          onClick={() => editor.chain().focus().setTextAlign('justify').run()}
+          className={`${styles.tiptapBtn} ${editor.isActive({ textAlign: 'justify' }) ? styles.active : ''}`}
+          title="两端对齐"
+          type="button"
+        >
+          ≡
+        </button>
+
+        <div className={styles.tiptapDivider} />
+
+        {/* 列表 */}
         <button
           onClick={() => editor.chain().focus().toggleBulletList().run()}
           className={`${styles.tiptapBtn} ${editor.isActive('bulletList') ? styles.active : ''}`}
@@ -359,6 +461,7 @@ export default function RichTextEditor({ content, onChange, onImageUpload }: Pro
 
         <div className={styles.tiptapDivider} />
 
+        {/* 图片和链接 */}
         <button
           onClick={() => setShowImageDialog(true)}
           className={styles.tiptapBtn}
@@ -380,6 +483,91 @@ export default function RichTextEditor({ content, onChange, onImageUpload }: Pro
         >
           🔗 链接
         </button>
+
+        <div className={styles.tiptapDivider} />
+
+        {/* 颜色选择 */}
+        <div className={styles.codeBlockGroup}>
+          <button
+            onClick={() => {
+              setShowTextColorPicker(!showTextColorPicker);
+              setShowHighlightPicker(false);
+            }}
+            className={`${styles.tiptapBtn} ${showTextColorPicker ? styles.active : ''}`}
+            title="文字颜色"
+            type="button"
+          >
+            <span style={{ color: editor.getAttributes('textStyle').color || '#000' }}>A</span>
+          </button>
+          {showTextColorPicker && (
+            <ColorPicker
+              onSelect={handleTextColorSelect}
+              onClose={() => setShowTextColorPicker(false)}
+              currentColor={editor.getAttributes('textStyle').color}
+              type="text"
+            />
+          )}
+        </div>
+
+        <div className={styles.codeBlockGroup}>
+          <button
+            onClick={() => {
+              setShowHighlightPicker(!showHighlightPicker);
+              setShowTextColorPicker(false);
+            }}
+            className={`${styles.tiptapBtn} ${editor.isActive('highlight') ? styles.active : ''}`}
+            title="背景颜色"
+            type="button"
+          >
+            🎨
+          </button>
+          {showHighlightPicker && (
+            <ColorPicker
+              onSelect={handleHighlightSelect}
+              onClose={() => setShowHighlightPicker(false)}
+              currentColor={editor.getAttributes('highlight').color}
+              type="highlight"
+            />
+          )}
+        </div>
+
+        <div className={styles.tiptapDivider} />
+
+        {/* 字体大小 */}
+        <div className={styles.codeBlockGroup}>
+          <button
+            onClick={() => setShowFontSizeMenu(!showFontSizeMenu)}
+            className={`${styles.tiptapBtn} ${showFontSizeMenu ? styles.active : ''}`}
+            title="字体大小"
+            type="button"
+          >
+            {getCurrentFontSize().replace('px', '')} ▾
+          </button>
+          {showFontSizeMenu && (
+            <div className={styles.codeLangDropdown}>
+              {FONT_SIZES.map(size => (
+                <button
+                  key={size.value}
+                  onClick={() => handleFontSizeSelect(size.value)}
+                  className={`${styles.codeLangOption} ${getCurrentFontSize() === size.value ? styles.active : ''}`}
+                  type="button"
+                >
+                  {size.label}px
+                </button>
+              ))}
+              <button
+                onClick={() => {
+                  editor.chain().focus().unsetFontSize().run();
+                  setShowFontSizeMenu(false);
+                }}
+                className={styles.codeLangOption}
+                type="button"
+              >
+                默认大小
+              </button>
+            </div>
+          )}
+        </div>
 
         <div className={styles.tiptapDivider} />
 
@@ -409,11 +597,14 @@ export default function RichTextEditor({ content, onChange, onImageUpload }: Pro
               {editor.isActive('table') && (
                 <>
                   <hr style={{ margin: '4px 0', border: 'none', borderTop: '1px solid #eee' }} />
-                  <button onClick={() => { editor.chain().focus().addColumnAfter().run(); setShowTableMenu(false); }} className={styles.codeLangOption} type="button">右侧添加列</button>
-                  <button onClick={() => { editor.chain().focus().addRowAfter().run(); setShowTableMenu(false); }} className={styles.codeLangOption} type="button">下方添加行</button>
-                  <button onClick={() => { editor.chain().focus().deleteColumn().run(); setShowTableMenu(false); }} className={styles.codeLangOption} type="button">删除当前列</button>
-                  <button onClick={() => { editor.chain().focus().deleteRow().run(); setShowTableMenu(false); }} className={styles.codeLangOption} type="button">删除当前行</button>
-                  <button onClick={() => { editor.chain().focus().deleteTable().run(); setShowTableMenu(false); }} className={styles.codeLangOption} type="button">删除整个表格</button>
+                  <button onClick={() => { editor.chain().focus().addRowBefore().run(); setShowTableMenu(false); }} className={styles.codeLangOption} type="button">⬆️ 上方插入行</button>
+                  <button onClick={() => { editor.chain().focus().addRowAfter().run(); setShowTableMenu(false); }} className={styles.codeLangOption} type="button">⬇️ 下方插入行</button>
+                  <button onClick={() => { editor.chain().focus().addColumnBefore().run(); setShowTableMenu(false); }} className={styles.codeLangOption} type="button">⬅️ 左侧插入列</button>
+                  <button onClick={() => { editor.chain().focus().addColumnAfter().run(); setShowTableMenu(false); }} className={styles.codeLangOption} type="button">➡️ 右侧插入列</button>
+                  <hr style={{ margin: '4px 0', border: 'none', borderTop: '1px solid #eee' }} />
+                  <button onClick={() => { editor.chain().focus().deleteRow().run(); setShowTableMenu(false); }} className={styles.codeLangOption} type="button">🗑️ 删除当前行</button>
+                  <button onClick={() => { editor.chain().focus().deleteColumn().run(); setShowTableMenu(false); }} className={styles.codeLangOption} type="button">🗑️ 删除当前列</button>
+                  <button onClick={() => { editor.chain().focus().deleteTable().run(); setShowTableMenu(false); }} className={styles.codeLangOption} type="button">🗑️ 删除整个表格</button>
                 </>
               )}
             </div>

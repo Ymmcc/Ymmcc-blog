@@ -1913,12 +1913,18 @@ select.formInput {
 }
 
 /* 表格样式 */
+.tiptapContent .tableWrapper {
+  overflow: visible;
+  position: relative;
+  margin: 16px 0;
+}
+
 .tiptapContent table {
   border-collapse: collapse;
-  margin: 16px 0;
   width: 100%;
-  overflow: auto;
+  overflow: visible;
   display: table;
+  position: relative;
 }
 
 .tiptapContent th,
@@ -1928,6 +1934,15 @@ select.formInput {
   text-align: left;
   min-width: 80px;
   position: relative;
+}
+
+/* 列宽拖拽时的光标样式 - prosemirror-tables会在编辑器上添加resize-cursor类 */
+.ProseMirror.resize-cursor {
+  cursor: col-resize !important;
+}
+
+.ProseMirror.resize-cursor * {
+  cursor: col-resize !important;
 }
 
 .tiptapContent th {
@@ -1959,14 +1974,28 @@ select.formInput {
   pointer-events: none;
 }
 
-.tiptapContent .column-resize-handle {
+/* 列拖拽手柄 - prosemirror-tables会创建这个元素 */
+.ProseMirror .column-resize-handle {
   position: absolute;
   right: -2px;
   top: 0;
   bottom: -2px;
   width: 4px;
-  background: var(--ifm-color-primary, #6366f1);
-  pointer-events: none;
+  background: #6366f1;
+  cursor: col-resize;
+  pointer-events: all;
+  z-index: 10;
+}
+
+/* 确保表格单元格有相对定位，以便手柄可以定位 */
+.ProseMirror td,
+.ProseMirror th {
+  position: relative;
+}
+
+/* 拖拽中的单元格样式 */
+.tiptapContent .column-resize-dragging {
+  background: rgba(99, 102, 241, 0.1);
 }
 
 .tiptapContent table p {
@@ -2633,4 +2662,186 @@ select.formInput {
 .seriesTokenInlineInput:focus {
   border-color: #667eea;
   box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+}
+
+/* ========== 颜色选择器 ========== */
+.colorPicker {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 100;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  padding: 12px;
+  min-width: 240px;
+  margin-top: 4px;
+}
+
+[data-theme='dark'] .colorPicker {
+  background: #1e1e2e;
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+}
+
+.colorPickerHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+}
+
+[data-theme='dark'] .colorPickerHeader {
+  color: #e5e7eb;
+}
+
+.colorPickerClose {
+  background: none;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  color: #9ca3af;
+  padding: 0;
+  line-height: 1;
+}
+
+.colorPickerClose:hover {
+  color: #374151;
+}
+
+.colorGrid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 4px;
+  margin-bottom: 10px;
+}
+
+.colorSwatch {
+  width: 100%;
+  aspect-ratio: 1;
+  border: 2px solid transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s;
+  padding: 0;
+}
+
+.colorSwatch:hover {
+  transform: scale(1.1);
+  border-color: #6366f1;
+}
+
+.colorSwatchActive {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.3);
+}
+
+.colorCustom {
+  margin-bottom: 10px;
+}
+
+.colorCustomLabel {
+  display: block;
+  font-size: 12px;
+  color: #6b7280;
+  margin-bottom: 6px;
+}
+
+[data-theme='dark'] .colorCustomLabel {
+  color: #9ca3af;
+}
+
+.colorCustomRow {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.colorInput {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.colorHexInput {
+  flex: 1;
+  padding: 6px 8px;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  font-size: 12px;
+  font-family: monospace;
+}
+
+[data-theme='dark'] .colorHexInput {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: #e5e7eb;
+}
+
+.colorApplyBtn {
+  padding: 6px 12px;
+  background: #6366f1;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.colorApplyBtn:hover {
+  background: #4f46e5;
+}
+
+.colorRemoveBtn {
+  width: 100%;
+  padding: 6px;
+  background: none;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  font-size: 12px;
+  color: #6b7280;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+[data-theme='dark'] .colorRemoveBtn {
+  border-color: rgba(255, 255, 255, 0.2);
+  color: #9ca3af;
+}
+
+.colorRemoveBtn:hover {
+  background: #f3f4f6;
+  border-color: #d1d5db;
+}
+
+[data-theme='dark'] .colorRemoveBtn:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* ========== 对齐按钮图标样式 ========== */
+.tiptapBtn[title="左对齐"]::before {
+  content: "☰";
+  display: inline-block;
+  transform: scaleX(-1);
+}
+
+.tiptapBtn[title="居中对齐"]::before {
+  content: "☰";
+}
+
+.tiptapBtn[title="右对齐"]::before {
+  content: "☰";
+}
+
+.tiptapBtn[title="两端对齐"]::before {
+  content: "☰";
+  letter-spacing: 2px;
 }

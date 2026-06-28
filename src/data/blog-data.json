@@ -1,7 +1,7 @@
 {
   "stats": {
-    "notes": 17,
-    "codeSnippets": 42,
+    "notes": 22,
+    "codeSnippets": 55,
     "projects": 0
   },
   "recentNotes": [
@@ -127,6 +127,26 @@
         {
           "name": "交替合并字符串",
           "link": "/docs/algorithm/zhilizhi/jiao-ti-he-bing-zi-fu-chuan"
+        },
+        {
+          "name": "判断子序列",
+          "link": "/docs/algorithm/zhilizhi/pan-duan-zi-xu-lie"
+        },
+        {
+          "name": "移动零",
+          "link": "/docs/algorithm/shuang-zhi-zhen-tong-xiang-kuai-man-zhen/yi-dong-ling"
+        },
+        {
+          "name": "移除元素",
+          "link": "/docs/algorithm/shuang-zhi-zhen-tong-xiang-kuai-man-zhen/yi-chu-yuan-su"
+        },
+        {
+          "name": "删除有序数组中的重复项",
+          "link": "/docs/algorithm/shuang-zhi-zhen-tong-xiang-kuai-man-zhen/shan-chu-you-xu-shu-zu-zhong-de-chong-fu-xiang"
+        },
+        {
+          "name": "颜色分类",
+          "link": "/docs/algorithm/shuang-zhi-zhen-tong-xiang-kuai-man-zhen/yan-se-fen-lei"
         }
       ]
     },
@@ -219,6 +239,47 @@
           "path": "/docs/algorithm/zhilizhi/jiao-ti-he-bing-zi-fu-chuan",
           "sidebar_position": 202606190014,
           "date": "2026-06-19"
+        },
+        {
+          "title": "判断子序列",
+          "slug": "pan-duan-zi-xu-lie",
+          "path": "/docs/algorithm/zhilizhi/pan-duan-zi-xu-lie",
+          "sidebar_position": 202606200031,
+          "date": "2026-06-20"
+        }
+      ]
+    },
+    {
+      "name": "双指针：同向快慢针",
+      "dirName": "algorithm",
+      "articles": [
+        {
+          "title": "移动零",
+          "slug": "yi-dong-ling",
+          "path": "/docs/algorithm/shuang-zhi-zhen-tong-xiang-kuai-man-zhen/yi-dong-ling",
+          "sidebar_position": 202606222116,
+          "date": "2026-06-22"
+        },
+        {
+          "title": "移除元素",
+          "slug": "yi-chu-yuan-su",
+          "path": "/docs/algorithm/shuang-zhi-zhen-tong-xiang-kuai-man-zhen/yi-chu-yuan-su",
+          "sidebar_position": 202606222141,
+          "date": "2026-06-22"
+        },
+        {
+          "title": "删除有序数组中的重复项",
+          "slug": "shan-chu-you-xu-shu-zu-zhong-de-chong-fu-xiang",
+          "path": "/docs/algorithm/shuang-zhi-zhen-tong-xiang-kuai-man-zhen/shan-chu-you-xu-shu-zu-zhong-de-chong-fu-xiang",
+          "sidebar_position": 202606241950,
+          "date": "2026-06-24"
+        },
+        {
+          "title": "颜色分类",
+          "slug": "yan-se-fen-lei",
+          "path": "/docs/algorithm/shuang-zhi-zhen-tong-xiang-kuai-man-zhen/yan-se-fen-lei",
+          "sidebar_position": 202606242022,
+          "date": "2026-06-24"
         }
       ]
     },
@@ -257,5 +318,5 @@
       ]
     }
   ],
-  "generatedAt": "2026-06-19T16:17:36.055Z"
+  "generatedAt": "2026-06-28T13:08:56.850Z"
 }
