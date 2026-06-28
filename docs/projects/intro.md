@@ -30,7 +30,7 @@ sidebar_position: 1
 - 实时来单提醒
 - 运营数据报表
 
-👉 [查看详细文档](./shi-ke-song-da/intro.md)
+👉 [查看详细文档](./shi-ke-song-da.md)
 
 ---
 
