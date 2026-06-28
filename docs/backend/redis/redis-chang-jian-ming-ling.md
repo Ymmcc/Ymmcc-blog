@@ -17,7 +17,7 @@ hello world
 
 Hash
 
-{name: "Jack", age: 21}
+\{name: "Jack", age: 21\}
 
 List
 
@@ -25,15 +25,15 @@ List
 
 Set
 
-{A, B, C}
+\{A, B, C\}
 
 SortedSet
 
-{A: 1, B: 2, C: 3}
+\{A: 1, B: 2, C: 3\}
 
 GEO
 
-{A:（120.3， 30.5）}
+\{A:（120.3， 30.5）\}
 
 BitMap
 
