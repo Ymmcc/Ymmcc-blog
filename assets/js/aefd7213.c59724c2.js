@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkmy_blog=self.webpackChunkmy_blog||[]).push([["3217"],{6401(e){e.exports=JSON.parse('{"metadata":{"permalink":"/Ymmcc-blog/blog","page":1,"postsPerPage":10,"totalPages":1,"totalCount":7,"blogDescription":"\u8BB0\u5F55\u6211\u7684\u5B66\u4E60\u5386\u7A0B","blogTitle":"\u5B66\u4E60\u65E5\u5FD7"}}')}}]);
