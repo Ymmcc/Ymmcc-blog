@@ -1,6 +1,6 @@
 ---
-title: Redis的Java客户端
-sidebar_position: 202606291541
+title: Redis-java客户端
+sidebar_position: 2
 date: 2026-06-29
 tags: []
 description: 
@@ -65,7 +65,7 @@ spring:
     host: localhost # Redis主机
     port: 6379 # Redis端口
     timeout: 10s # Redis超时时间
-    password: Ymc060214@ # Redis密码
+    password: 123456 # Redis密码
     lettuce: # Redis连接池配置
       pool:
         max-active: 10 # 最大连接数
