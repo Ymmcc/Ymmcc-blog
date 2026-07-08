@@ -23,15 +23,22 @@ const config: Config = {
   },
 
   // GitHub Pages 部署配置
-  url: 'https://yymmcc.github.io',
+  url: 'https://ymmcc.github.io',
   baseUrl: '/Ymmcc-blog/',
 
   // GitHub pages deployment config
-  organizationName: 'yymmcc',
+  organizationName: 'Ymmcc',
   projectName: 'Ymmcc-blog',
+  deploymentBranch: 'gh-pages',
   trailingSlash: false,
 
   onBrokenLinks: 'throw',
+
+  markdown: {
+    hooks: {
+      onBrokenMarkdownImages: 'warn',
+    },
+  },
 
   i18n: {
     defaultLocale: 'zh-Hans',
@@ -101,7 +108,7 @@ const config: Config = {
           position: 'left',
         },
         {
-          href: 'https://github.com/yymmcc/Ymmcc-blog',
+          href: 'https://github.com/Ymmcc/Ymmcc-blog',
           label: 'GitHub',
           position: 'right',
         },
@@ -145,7 +152,7 @@ const config: Config = {
           items: [
             {
               label: 'GitHub',
-              href: 'https://github.com/yymmcc/Ymmcc-blog',
+              href: 'https://github.com/Ymmcc/Ymmcc-blog',
             },
           ],
         },

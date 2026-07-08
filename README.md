@@ -63,9 +63,9 @@ npm run serve
 
 ```typescript
 // 替换为你的 GitHub 用户名
-url: 'https://yymmcc.github.io',
+url: 'https://ymmcc.github.io',
 baseUrl: '/Ymmcc-blog/',
-organizationName: 'yymmcc',
+organizationName: 'ymmcc',
 projectName: 'Ymmcc-blog',
 ```
 
@@ -76,7 +76,7 @@ git init
 git add .
 git commit -m "Initial commit"
 git branch -M main
-git remote add origin https://github.com/yymmcc/Ymmcc-blog.git
+git remote add origin https://github.com/ymmcc/Ymmcc-blog.git
 git push -u origin main
 ```
 
@@ -90,7 +90,7 @@ git push -u origin main
 
 推送到 `main` 分支后，GitHub Actions 会自动构建并部署到 GitHub Pages。
 
-访问 https://yymmcc.github.io/Ymmcc-blog/ 查看效果。
+访问 https://ymmcc.github.io/Ymmcc-blog/ 查看效果。
 
 ## 内容结构
 
